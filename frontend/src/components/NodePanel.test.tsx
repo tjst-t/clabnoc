@@ -51,9 +51,9 @@ describe('NodePanel', () => {
     render(
       <NodePanel node={mockNode} onClose={onClose} onOpenTerminal={() => {}} onNodeAction={() => {}} />
     );
-    // Find close button (the X)
+    // Find close button (the [x] tui-btn)
     const buttons = screen.getAllByRole('button');
-    const closeBtn = buttons.find(b => b.querySelector('svg'));
+    const closeBtn = buttons.find(b => b.textContent === 'x' && b.classList.contains('tui-btn'));
     if (closeBtn) fireEvent.click(closeBtn);
     expect(onClose).toHaveBeenCalled();
   });

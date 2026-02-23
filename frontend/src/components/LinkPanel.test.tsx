@@ -35,7 +35,7 @@ describe('LinkPanel', () => {
     render(
       <LinkPanel link={downLink} onClose={() => {}} onFaultAction={() => {}} onOpenNetemDialog={() => {}} />
     );
-    expect(screen.getByText('Link Up (Restore)')).toBeInTheDocument();
+    expect(screen.getByText('Link Up')).toBeInTheDocument();
   });
 
   it('shows clear netem button when degraded', () => {

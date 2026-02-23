@@ -112,17 +112,12 @@ export default function App() {
   const hasPanel = selectedNode || selectedLink;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden" onClick={closeContextMenu}>
-      {/* Header */}
-      <header className="h-11 bg-noc-panel border-b border-noc-border flex items-center px-4 shrink-0">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-noc-accent rounded-full animate-pulse-slow" />
-            <span className="font-display text-sm font-bold tracking-tight text-noc-text-bright">
-              clabnoc
-            </span>
-          </div>
-          <div className="w-px h-5 bg-noc-border" />
+    <div className="h-screen flex flex-col overflow-hidden bg-noc-bg text-noc-text font-mono" onClick={closeContextMenu}>
+      {/* ┌─── Header ───┐ */}
+      <header className="h-8 bg-noc-bg tui-border-b flex items-center px-2 shrink-0">
+        <div className="flex items-center gap-3 flex-1">
+          <span className="text-noc-accent text-xs font-bold">clabnoc</span>
+          <span className="text-noc-border">|</span>
           <ProjectSelector
             projects={projects}
             selected={selectedProject}
@@ -130,9 +125,22 @@ export default function App() {
             loading={projectsLoading}
           />
         </div>
+        <div className="flex items-center gap-2 text-2xs text-noc-text-dim">
+          <span>{topology ? `${topology.nodes.length} nodes` : '--'}</span>
+          <span className="text-noc-border">|</span>
+          <span>{topology ? `${topology.links.length} links` : '--'}</span>
+          {hasPanel && (
+            <>
+              <span className="text-noc-border">|</span>
+              <span className="text-noc-accent">
+                {selectedNode ? selectedNode.name : selectedLink ? 'link' : ''}
+              </span>
+            </>
+          )}
+        </div>
       </header>
 
-      {/* Main content */}
+      {/* ├─── Main ───┤ */}
       <div className="flex-1 flex overflow-hidden">
         {/* Topology view */}
         <div className="flex-1 relative">
@@ -146,12 +154,12 @@ export default function App() {
           {/* Link context menu */}
           {contextMenu && (
             <div
-              className="fixed z-40 bg-noc-panel border border-noc-border rounded shadow-xl py-1 min-w-40 animate-fade-in"
+              className="fixed z-40 bg-noc-bg tui-border py-1 min-w-44 animate-fade-in shadow-lg"
               style={{ left: contextMenu.x, top: contextMenu.y }}
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="px-3 py-1.5 text-2xs font-mono text-noc-text-dim border-b border-noc-border">
-                {contextMenu.link.a.node} ↔ {contextMenu.link.z.node}
+              <div className="px-2 py-1 text-2xs text-noc-text-dim tui-border-b">
+                {contextMenu.link.a.node} &lt;-&gt; {contextMenu.link.z.node}
               </div>
               {contextMenu.link.state === 'up' ? (
                 <>
@@ -233,7 +241,7 @@ export default function App() {
         )}
       </div>
 
-      {/* Terminal panel */}
+      {/* ├─── Terminal ───┤ */}
       {selectedProject && (
         <TerminalPanel
           project={selectedProject}
@@ -254,23 +262,6 @@ export default function App() {
           onClose={() => setNetemDialogLink(null)}
         />
       )}
-
-      {/* Bottom status bar */}
-      <div className="h-5 bg-noc-bg border-t border-noc-border flex items-center px-3 shrink-0">
-        <div className="flex items-center gap-3 text-2xs font-mono text-noc-text-dim">
-          <span>{topology ? `${topology.nodes.length} nodes` : '—'}</span>
-          <span>·</span>
-          <span>{topology ? `${topology.links.length} links` : '—'}</span>
-          {hasPanel && (
-            <>
-              <span>·</span>
-              <span className="text-noc-accent">
-                {selectedNode ? selectedNode.name : selectedLink ? 'link selected' : ''}
-              </span>
-            </>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
@@ -287,7 +278,7 @@ function ContextMenuItem({
   return (
     <button
       onClick={onClick}
-      className={`w-full text-left px-3 py-1.5 text-xs font-mono hover:bg-noc-surface transition-colors cursor-pointer ${color}`}
+      className={`w-full text-left px-2 py-1 text-xs hover:bg-noc-surface transition-colors cursor-pointer ${color}`}
     >
       {label}
     </button>

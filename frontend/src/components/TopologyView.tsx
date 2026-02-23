@@ -153,28 +153,14 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
   }, [topology]);
 
   return (
-    <div className="relative w-full h-full">
+    <div className="relative w-full h-full bg-noc-bg">
       <div ref={containerRef} className="w-full h-full" />
-
-      {/* Grid overlay for NOC feel */}
-      <div
-        className="absolute inset-0 pointer-events-none animate-scan"
-        style={{
-          backgroundImage:
-            'linear-gradient(rgba(0, 200, 255, 0.03) 1px, transparent 1px), linear-gradient(90deg, rgba(0, 200, 255, 0.03) 1px, transparent 1px)',
-          backgroundSize: '40px 40px',
-        }}
-      />
 
       {!topology && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="text-center">
-            <div className="font-mono text-noc-text-dim text-sm tracking-widest uppercase">
-              No project selected
-            </div>
-            <div className="text-2xs text-noc-text-dim mt-1 font-mono">
-              Select a project to view topology
-            </div>
+          <div className="text-center text-noc-text-dim text-xs">
+            <div>No project selected</div>
+            <div className="text-2xs mt-1">Select a project to view topology</div>
           </div>
         </div>
       )}

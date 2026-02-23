@@ -61,7 +61,7 @@ describe('TerminalPanel', () => {
         onToggle={() => {}}
       />
     );
-    expect(screen.getByText(/click a node/i)).toBeInTheDocument();
+    expect(screen.getByText(/select a node/i)).toBeInTheDocument();
   });
 
   it('shows tab count', () => {
@@ -76,7 +76,7 @@ describe('TerminalPanel', () => {
         onToggle={() => {}}
       />
     );
-    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('[2]')).toBeInTheDocument();
   });
 
   it('calls onToggle when clicking header', () => {

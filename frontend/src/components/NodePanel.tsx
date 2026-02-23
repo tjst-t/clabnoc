@@ -7,16 +7,11 @@ interface Props {
   onNodeAction: (node: string, action: 'start' | 'stop' | 'restart') => void;
 }
 
-const ROLE_BADGE_COLORS: Record<string, string> = {
-  spine: 'border-noc-cyan text-noc-cyan',
-  leaf: 'border-noc-accent text-noc-accent',
-  router: 'border-noc-cyan text-noc-cyan',
-  switch: 'border-noc-accent text-noc-accent',
-  server: 'border-noc-amber text-noc-amber',
-  bmc: 'border-noc-red text-noc-red',
-};
-
-function AccessButton({ method, onOpenTerminal, nodeName }: {
+function AccessButton({
+  method,
+  onOpenTerminal,
+  nodeName,
+}: {
   method: AccessMethod;
   onOpenTerminal: (node: string, type: 'exec' | 'ssh') => void;
   nodeName: string;
@@ -27,11 +22,8 @@ function AccessButton({ method, onOpenTerminal, nodeName }: {
         href={method.target}
         target="_blank"
         rel="noopener noreferrer"
-        className="flex items-center gap-2 px-3 py-2 bg-noc-surface border border-noc-border
-                   rounded text-xs font-mono hover:border-noc-amber hover:text-noc-amber
-                   transition-colors cursor-pointer"
+        className="tui-btn tui-btn-amber"
       >
-        <span className="w-1.5 h-1.5 rounded-full bg-noc-amber" />
         {method.label}
       </a>
     );
@@ -40,157 +32,160 @@ function AccessButton({ method, onOpenTerminal, nodeName }: {
   return (
     <button
       onClick={() => onOpenTerminal(nodeName, method.type as 'exec' | 'ssh')}
-      className="flex items-center gap-2 px-3 py-2 bg-noc-surface border border-noc-border
-                 rounded text-xs font-mono hover:border-noc-accent hover:text-noc-accent
-                 transition-colors cursor-pointer text-left w-full"
+      className="tui-btn tui-btn-cyan"
     >
-      <span className="w-1.5 h-1.5 rounded-full bg-noc-accent" />
       {method.label}
     </button>
   );
 }
 
 export function NodePanel({ node, onClose, onOpenTerminal, onNodeAction }: Props) {
-  const roleClass = ROLE_BADGE_COLORS[node.graph.role] ?? 'border-noc-text-dim text-noc-text-dim';
-
   return (
-    <div className="w-80 h-full bg-noc-panel border-l border-noc-border overflow-y-auto animate-fade-in">
-      {/* Header */}
-      <div className="sticky top-0 bg-noc-panel border-b border-noc-border px-4 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="w-72 h-full bg-noc-bg tui-border-l overflow-y-auto animate-fade-in flex flex-col">
+      {/* ─── Header ─── */}
+      <div className="tui-border-b px-3 py-1.5 flex items-center justify-between shrink-0">
+        <div className="flex items-center gap-2 text-xs">
           <span
-            className={`w-2 h-2 rounded-full ${
-              node.status === 'running' ? 'bg-noc-green' : 'bg-noc-red'
-            }`}
-          />
-          <h2 className="font-mono text-sm font-semibold text-noc-text-bright">{node.name}</h2>
+            className={
+              node.status === 'running' ? 'text-noc-green' : 'text-noc-red'
+            }
+          >
+            {node.status === 'running' ? '*' : 'x'}
+          </span>
+          <span className="text-noc-text-bright font-bold">{node.name}</span>
         </div>
         <button
           onClick={onClose}
-          className="text-noc-text-dim hover:text-noc-text transition-colors p-1"
+          className="tui-btn tui-btn-dim"
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
+          x
         </button>
       </div>
 
-      <div className="p-4 space-y-4">
-        {/* Role & Kind */}
-        <div className="flex items-center gap-2">
-          <span className={`px-2 py-0.5 border rounded text-2xs font-mono uppercase tracking-wider ${roleClass}`}>
-            {node.graph.role || 'unknown'}
-          </span>
-          <span className="text-2xs font-mono text-noc-text-dim">{node.kind}</span>
-        </div>
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-3 py-2 space-y-3">
+          {/* ─── Info ─── */}
+          <TuiSection title="Node">
+            <DetailRow label="Kind" value={node.kind} />
+            <DetailRow label="Image" value={node.image} />
+            <DetailRow
+              label="Status"
+              value={node.status}
+              valueClass={node.status === 'running' ? 'text-noc-green' : 'text-noc-red'}
+            />
+            {node.mgmt_ipv4 && <DetailRow label="Mgmt" value={node.mgmt_ipv4} />}
+            {node.mgmt_ipv6 && <DetailRow label="IPv6" value={node.mgmt_ipv6} />}
+            {node.container_id && (
+              <DetailRow label="Container" value={node.container_id.slice(0, 12)} />
+            )}
+            {node.graph.dc && <DetailRow label="DC" value={node.graph.dc} />}
+            {node.graph.rack && <DetailRow label="Rack" value={node.graph.rack} />}
+            {node.graph.role && (
+              <DetailRow
+                label="Role"
+                value={node.graph.role}
+                valueClass="text-noc-cyan"
+              />
+            )}
+          </TuiSection>
 
-        {/* Details table */}
-        <div className="space-y-1.5">
-          <DetailRow label="Image" value={node.image} />
-          <DetailRow label="Status" value={node.status} valueClass={
-            node.status === 'running' ? 'text-noc-green' : 'text-noc-red'
-          } />
-          {node.mgmt_ipv4 && <DetailRow label="Mgmt IPv4" value={node.mgmt_ipv4} />}
-          {node.mgmt_ipv6 && <DetailRow label="Mgmt IPv6" value={node.mgmt_ipv6} />}
-          {node.container_id && (
-            <DetailRow label="Container" value={node.container_id.slice(0, 12)} />
-          )}
-          {node.graph.dc && <DetailRow label="DC" value={node.graph.dc} />}
-          {node.graph.rack && <DetailRow label="Rack" value={node.graph.rack} />}
-        </div>
-
-        {/* Port bindings */}
-        {node.port_bindings && node.port_bindings.length > 0 && (
-          <div>
-            <SectionLabel>Port Bindings</SectionLabel>
-            <div className="space-y-1">
+          {/* ─── Port Bindings ─── */}
+          {node.port_bindings && node.port_bindings.length > 0 && (
+            <TuiSection title="Ports">
               {node.port_bindings.map((pb, i) => (
-                <div key={i} className="font-mono text-2xs text-noc-text-dim">
-                  {pb.host_ip}:{pb.host_port} → {pb.port}/{pb.protocol}
+                <div key={i} className="text-2xs text-noc-text-dim">
+                  {pb.host_ip}:{pb.host_port} -&gt; {pb.port}/{pb.protocol}
                 </div>
               ))}
+            </TuiSection>
+          )}
+
+          {/* ─── Access ─── */}
+          <TuiSection title="Access">
+            <div className="flex flex-wrap gap-2">
+              {node.access_methods.map((m, i) => (
+                <AccessButton
+                  key={i}
+                  method={m}
+                  onOpenTerminal={onOpenTerminal}
+                  nodeName={node.name}
+                />
+              ))}
             </div>
-          </div>
-        )}
+          </TuiSection>
 
-        {/* Access methods */}
-        <div>
-          <SectionLabel>Access</SectionLabel>
-          <div className="space-y-1.5">
-            {node.access_methods.map((m, i) => (
-              <AccessButton key={i} method={m} onOpenTerminal={onOpenTerminal} nodeName={node.name} />
-            ))}
-          </div>
-        </div>
+          {/* ─── Actions ─── */}
+          <TuiSection title="Actions">
+            <div className="flex gap-2">
+              {node.status === 'running' ? (
+                <>
+                  <button
+                    onClick={() => onNodeAction(node.name, 'stop')}
+                    className="tui-btn tui-btn-red"
+                  >
+                    Stop
+                  </button>
+                  <button
+                    onClick={() => onNodeAction(node.name, 'restart')}
+                    className="tui-btn tui-btn-amber"
+                  >
+                    Restart
+                  </button>
+                </>
+              ) : (
+                <button
+                  onClick={() => onNodeAction(node.name, 'start')}
+                  className="tui-btn tui-btn-green"
+                >
+                  Start
+                </button>
+              )}
+            </div>
+          </TuiSection>
 
-        {/* Actions */}
-        <div>
-          <SectionLabel>Actions</SectionLabel>
-          <div className="flex gap-2">
-            {node.status === 'running' ? (
-              <>
-                <ActionBtn label="Stop" color="red" onClick={() => onNodeAction(node.name, 'stop')} />
-                <ActionBtn label="Restart" color="amber" onClick={() => onNodeAction(node.name, 'restart')} />
-              </>
-            ) : (
-              <ActionBtn label="Start" color="green" onClick={() => onNodeAction(node.name, 'start')} />
-            )}
-          </div>
-        </div>
-
-        {/* Labels */}
-        {Object.keys(node.labels).length > 0 && (
-          <div>
-            <SectionLabel>Labels</SectionLabel>
-            <div className="space-y-0.5">
+          {/* ─── Labels ─── */}
+          {Object.keys(node.labels).length > 0 && (
+            <TuiSection title="Labels">
               {Object.entries(node.labels).map(([k, v]) => (
-                <div key={k} className="font-mono text-2xs">
+                <div key={k} className="text-2xs">
                   <span className="text-noc-text-dim">{k}=</span>
                   <span className="text-noc-text">{v}</span>
                 </div>
               ))}
-            </div>
-          </div>
-        )}
+            </TuiSection>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function DetailRow({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
+function TuiSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex justify-between items-start gap-3">
-      <span className="text-2xs font-mono text-noc-text-dim uppercase tracking-wider shrink-0">
-        {label}
-      </span>
-      <span className={`text-xs font-mono text-right break-all ${valueClass ?? 'text-noc-text'}`}>
-        {value}
-      </span>
+    <div>
+      <div className="text-2xs text-noc-text-dim mb-1">
+        {'--- '}
+        {title}
+        {' ---'}
+      </div>
+      <div className="space-y-0.5">{children}</div>
     </div>
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function DetailRow({
+  label,
+  value,
+  valueClass,
+}: {
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
   return (
-    <div className="text-2xs font-mono uppercase tracking-widest text-noc-text-dim mb-2 border-b border-noc-border pb-1">
-      {children}
+    <div className="flex justify-between items-start gap-2 text-2xs">
+      <span className="text-noc-text-dim shrink-0">{label}:</span>
+      <span className={`text-right break-all ${valueClass ?? 'text-noc-text'}`}>{value}</span>
     </div>
-  );
-}
-
-function ActionBtn({ label, color, onClick }: { label: string; color: string; onClick: () => void }) {
-  const colorMap: Record<string, string> = {
-    red: 'border-noc-red text-noc-red hover:bg-noc-red/10',
-    amber: 'border-noc-amber text-noc-amber hover:bg-noc-amber/10',
-    green: 'border-noc-green text-noc-green hover:bg-noc-green/10',
-  };
-  return (
-    <button
-      onClick={onClick}
-      className={`px-3 py-1.5 border rounded text-xs font-mono uppercase tracking-wider
-                 transition-colors cursor-pointer ${colorMap[color] ?? ''}`}
-    >
-      {label}
-    </button>
   );
 }

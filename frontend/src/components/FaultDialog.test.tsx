@@ -35,7 +35,7 @@ describe('FaultDialog', () => {
     const lossInput = screen.getByLabelText(/loss/i);
     fireEvent.change(lossInput, { target: { value: '30' } });
 
-    fireEvent.click(screen.getByText('Apply Netem'));
+    fireEvent.click(screen.getByText('Apply'));
     expect(onApply).toHaveBeenCalledWith('spine1:e1-1__leaf1:e1-49', expect.objectContaining({
       delay_ms: 100,
       loss_percent: 30,

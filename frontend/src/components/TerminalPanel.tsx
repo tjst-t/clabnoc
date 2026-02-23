@@ -22,54 +22,55 @@ export function TerminalPanel({
 }: Props) {
   return (
     <div
-      className={`bg-noc-panel border-t border-noc-border flex flex-col transition-all duration-200 ${
-        collapsed ? 'h-8' : 'h-64'
+      className={`bg-noc-bg tui-border-t flex flex-col transition-all duration-200 ${
+        collapsed ? 'h-7' : 'h-64'
       }`}
     >
       {/* Tab bar */}
-      <div className="flex items-center border-b border-noc-border h-8 shrink-0">
+      <div className="flex items-center h-7 shrink-0 tui-border-b">
         <button
           onClick={onToggle}
-          className="px-3 h-full flex items-center gap-1.5 text-2xs font-mono uppercase tracking-widest
+          className="px-2 h-full flex items-center gap-1 text-2xs
                      text-noc-text-dim hover:text-noc-text transition-colors cursor-pointer"
         >
-          <svg
-            width="8"
-            height="8"
-            viewBox="0 0 8 8"
-            fill="none"
-            className={`transition-transform ${collapsed ? 'rotate-180' : ''}`}
-          >
-            <path d="M1 2L4 5L7 2" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          Terminal
+          <span>{collapsed ? '>' : 'v'}</span>
+          <span>Terminal</span>
           {tabs.length > 0 && (
-            <span className="ml-1 text-noc-accent">{tabs.length}</span>
+            <span className="text-noc-accent">[{tabs.length}]</span>
           )}
         </button>
+
+        <span className="text-noc-border">|</span>
 
         <div className="flex-1 flex items-center gap-0 overflow-x-auto">
           {tabs.map((tab) => (
             <div
               key={tab.id}
-              className={`group flex items-center gap-1.5 px-3 h-full text-2xs font-mono cursor-pointer
-                         border-r border-noc-border transition-colors
-                         ${tab.id === activeTabId
-                           ? 'bg-noc-bg text-noc-accent border-b-2 border-b-noc-accent'
-                           : 'text-noc-text-dim hover:text-noc-text hover:bg-noc-surface'}`}
+              className={`group flex items-center gap-1 px-2 h-full text-2xs cursor-pointer
+                         transition-colors
+                         ${
+                           tab.id === activeTabId
+                             ? 'text-noc-accent bg-noc-surface'
+                             : 'text-noc-text-dim hover:text-noc-text'
+                         }`}
               onClick={() => onSelectTab(tab.id)}
             >
-              <span className={`w-1 h-1 rounded-full ${
-                tab.type === 'exec' ? 'bg-noc-accent' : 'bg-noc-cyan'
-              }`} />
+              <span
+                className={
+                  tab.type === 'exec' ? 'text-noc-accent' : 'text-noc-cyan'
+                }
+              >
+                {tab.type === 'exec' ? '$' : '>'}
+              </span>
               <span className="truncate max-w-32">{tab.label}</span>
               <button
-                onClick={(e) => { e.stopPropagation(); onCloseTab(tab.id); }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 hover:text-noc-red"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onCloseTab(tab.id);
+                }}
+                className="opacity-0 group-hover:opacity-100 transition-opacity ml-1 hover:text-noc-red text-noc-text-dim"
               >
-                <svg width="8" height="8" viewBox="0 0 8 8" fill="none">
-                  <path d="M1 1L7 7M7 1L1 7" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-                </svg>
+                x
               </button>
             </div>
           ))}
@@ -81,8 +82,8 @@ export function TerminalPanel({
         <div className="flex-1 relative">
           {tabs.length === 0 ? (
             <div className="flex items-center justify-center h-full">
-              <span className="text-2xs font-mono text-noc-text-dim tracking-widest uppercase">
-                Click a node access method to open a terminal
+              <span className="text-2xs text-noc-text-dim">
+                -- Select a node and open a terminal --
               </span>
             </div>
           ) : (

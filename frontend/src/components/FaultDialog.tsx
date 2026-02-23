@@ -33,34 +33,27 @@ export function FaultDialog({ link, onApply, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+      <div className="absolute inset-0 bg-black/70" />
       <div
-        className="relative bg-noc-panel border border-noc-border rounded-lg shadow-2xl w-96 animate-fade-in"
+        className="relative bg-noc-bg tui-border w-96 animate-fade-in"
         onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="px-5 py-4 border-b border-noc-border flex items-center justify-between">
+        {/* ─── Header ─── */}
+        <div className="px-3 py-1.5 tui-border-b flex items-center justify-between">
           <div>
-            <h3 className="font-display text-sm font-semibold text-noc-text-bright">
-              Network Emulation
-            </h3>
-            <p className="text-2xs font-mono text-noc-text-dim mt-0.5">
-              {link.a.node}:{link.a.interface} ↔ {link.z.node}:{link.z.interface}
-            </p>
+            <span className="text-xs text-noc-text-bright font-bold">Network Emulation</span>
+            <div className="text-2xs text-noc-text-dim">
+              {link.a.node}:{link.a.interface} &lt;-&gt; {link.z.node}:{link.z.interface}
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="text-noc-text-dim hover:text-noc-text transition-colors p-1"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M1 1L13 13M13 1L1 13" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-            </svg>
+          <button onClick={onClose} className="tui-btn tui-btn-dim">
+            x
           </button>
         </div>
 
-        {/* Form */}
-        <form onSubmit={handleSubmit} className="p-5 space-y-4">
-          <div className="grid grid-cols-2 gap-3">
+        {/* ─── Form ─── */}
+        <form onSubmit={handleSubmit} className="p-3 space-y-3">
+          <div className="grid grid-cols-2 gap-2">
             <ParamInput
               label="Delay (ms)"
               value={params.delay_ms}
@@ -94,11 +87,9 @@ export function FaultDialog({ link, onApply, onClose }: Props) {
           </div>
 
           {/* Preview */}
-          <div className="bg-noc-bg border border-noc-border rounded p-3">
-            <div className="text-2xs font-mono text-noc-text-dim uppercase tracking-wider mb-1.5">
-              Preview
-            </div>
-            <code className="text-xs font-mono text-noc-amber block">
+          <div className="tui-border p-2">
+            <div className="text-2xs text-noc-text-dim mb-1">--- Preview ---</div>
+            <code className="text-2xs text-noc-amber block">
               tc qdisc add dev veth root netem
               {params.delay_ms > 0 && ` delay ${params.delay_ms}ms`}
               {params.jitter_ms > 0 && ` ${params.jitter_ms}ms`}
@@ -110,20 +101,11 @@ export function FaultDialog({ link, onApply, onClose }: Props) {
 
           {/* Buttons */}
           <div className="flex justify-end gap-2">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 border border-noc-border text-noc-text-dim rounded text-xs font-mono
-                         uppercase tracking-wider hover:border-noc-text-dim transition-colors cursor-pointer"
-            >
+            <button type="button" onClick={onClose} className="tui-btn tui-btn-dim">
               Cancel
             </button>
-            <button
-              type="submit"
-              className="px-4 py-2 bg-noc-amber/20 border border-noc-amber text-noc-amber rounded text-xs font-mono
-                         uppercase tracking-wider hover:bg-noc-amber/30 transition-colors cursor-pointer"
-            >
-              Apply Netem
+            <button type="submit" className="tui-btn tui-btn-amber">
+              Apply
             </button>
           </div>
         </form>
@@ -146,7 +128,7 @@ function ParamInput({
   const id = `netem-${label.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
   return (
     <div>
-      <label htmlFor={id} className="block text-2xs font-mono text-noc-text-dim uppercase tracking-wider mb-1">
+      <label htmlFor={id} className="block text-2xs text-noc-text-dim mb-0.5">
         {label}
       </label>
       <input
@@ -156,8 +138,8 @@ function ParamInput({
         max={max}
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="w-full bg-noc-bg border border-noc-border rounded px-2.5 py-1.5
-                   font-mono text-sm text-noc-text-bright
+        className="w-full bg-noc-surface tui-border px-2 py-1
+                   text-xs text-noc-text-bright
                    focus:outline-none focus:border-noc-amber
                    [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
       />

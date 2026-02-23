@@ -23,7 +23,7 @@ describe('ProjectSelector', () => {
       <ProjectSelector projects={mockProjects} selected="dc-fabric" onSelect={() => {}} loading={false} />
     );
     expect(screen.getByText('5 nodes')).toBeInTheDocument();
-    expect(screen.getByText('running')).toBeInTheDocument();
+    expect(screen.getByText('[running]')).toBeInTheDocument();
   });
 
   it('calls onSelect when changed', () => {

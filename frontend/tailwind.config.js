@@ -3,13 +3,24 @@ export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      borderRadius: {
+        none: '0',
+        DEFAULT: '0',
+        sm: '0',
+        md: '0',
+        lg: '0',
+        xl: '0',
+        '2xl': '0',
+        '3xl': '0',
+        full: '0',
+      },
       colors: {
         noc: {
           bg: '#0a0e14',
           surface: '#111820',
-          panel: '#161d27',
-          border: '#1e2a38',
-          'border-active': '#2a4060',
+          panel: '#0d1118',
+          border: '#2a3a4e',
+          'border-active': '#3a5a7e',
           text: '#c5cdd8',
           'text-dim': '#5a6a7e',
           'text-bright': '#e8edf3',
@@ -27,25 +38,20 @@ export default {
       },
       fontFamily: {
         mono: ['"JetBrains Mono"', '"Fira Code"', 'ui-monospace', 'monospace'],
-        display: ['"Space Grotesk"', 'system-ui', 'sans-serif'],
-        sans: ['"DM Sans"', 'system-ui', 'sans-serif'],
+        display: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
+        sans: ['"JetBrains Mono"', 'ui-monospace', 'monospace'],
       },
       fontSize: {
         '2xs': ['0.625rem', { lineHeight: '0.875rem' }],
       },
       animation: {
         'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
-        'scan': 'scan 4s ease-in-out infinite',
-        'fade-in': 'fadeIn 0.3s ease-out',
+        'fade-in': 'fadeIn 0.15s ease-out',
       },
       keyframes: {
-        scan: {
-          '0%, 100%': { opacity: '0.03' },
-          '50%': { opacity: '0.06' },
-        },
         fadeIn: {
-          from: { opacity: '0', transform: 'translateY(4px)' },
-          to: { opacity: '1', transform: 'translateY(0)' },
+          from: { opacity: '0' },
+          to: { opacity: '1' },
         },
       },
     },
