@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: #1e2a38 transparent;
+  }
+
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    background: #1e2a38;
+    border-radius: 3px;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    background: #2a4060;
+  }
+
+  /* xterm.js container styling */
+  .xterm {
+    padding: 4px 8px;
+  }
+
+  .xterm-viewport {
+    scrollbar-width: thin;
+    scrollbar-color: #1e2a38 transparent;
+  }
+
+  /* Cytoscape.js container */
+  .cytoscape-container canvas {
+    outline: none;
+  }
+
+  /* Remove number input spinners globally */
+  input[type='number']::-webkit-inner-spin-button,
+  input[type='number']::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+
+  input[type='number'] {
+    -moz-appearance: textfield;
+  }
+
+  select option {
+    background: #111820;
+    color: #c5cdd8;
+  }
+}
