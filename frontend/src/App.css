@@ -1,0 +1,99 @@
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; font-size: 14px; color: #333; }
+
+.app { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+.app-header { background: #1976D2; color: white; padding: 8px 16px; display: flex; align-items: center; gap: 16px; }
+.app-header h1 { font-size: 20px; font-weight: 700; }
+.app-header .subtitle { font-size: 12px; opacity: 0.8; }
+.app-body { display: flex; flex: 1; overflow: hidden; }
+.sidebar { width: 220px; border-right: 1px solid #ddd; overflow-y: auto; background: #fafafa; }
+.main-content { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+.topology-container { flex: 1; overflow: hidden; }
+.terminal-container { height: 300px; border-top: 1px solid #ddd; background: #1e1e1e; }
+.node-panel-container { width: 280px; border-left: 1px solid #ddd; overflow-y: auto; background: #fff; }
+
+/* Project Selector */
+.project-selector { padding: 8px; }
+.project-selector-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-weight: 600; }
+.project-list { list-style: none; }
+.project-item { padding: 8px; cursor: pointer; border-radius: 4px; margin-bottom: 2px; border-left: 3px solid transparent; }
+.project-item:hover { background: #e3f2fd; }
+.project-item.active { background: #e3f2fd; border-left-color: #1976D2; }
+.project-item .project-name { font-weight: 500; display: block; }
+.project-item .project-meta { font-size: 12px; color: #666; }
+.status-badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; float: right; }
+.status-badge.running { background: #e8f5e9; color: #388E3C; }
+.status-badge.stopped { background: #ffebee; color: #D32F2F; }
+.status-badge.partial { background: #fff3e0; color: #E65100; }
+.empty { color: #999; font-size: 12px; padding: 8px; }
+.loading { color: #666; padding: 8px; }
+.error { color: #D32F2F; padding: 8px; font-size: 12px; }
+
+/* Node Panel */
+.node-panel { padding: 12px; }
+.node-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.node-panel-header h3 { font-size: 16px; }
+.node-panel dt { font-size: 11px; color: #666; margin-top: 6px; }
+.node-panel dd { font-weight: 500; }
+.access-methods { margin-top: 12px; }
+.access-btn { display: block; width: 100%; padding: 6px 12px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: #fff; }
+.access-btn:hover { background: #f5f5f5; }
+.access-btn.exec { border-color: #4CAF50; color: #388E3C; }
+.access-btn.ssh { border-color: #2196F3; color: #1565C0; }
+.access-btn.vnc { border-color: #FF9800; color: #E65100; }
+
+/* Link Panel */
+.link-panel { padding: 12px; }
+.link-panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+.link-panel-header h3 { font-size: 16px; }
+.link-panel-body { }
+.link-endpoints { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; margin-bottom: 8px; font-size: 12px; }
+.link-endpoints .endpoint { font-weight: 500; font-family: monospace; background: #f5f5f5; padding: 2px 6px; border-radius: 4px; }
+.link-arrow { color: #999; }
+.link-state { margin-bottom: 12px; font-size: 13px; }
+.netem-info { margin-bottom: 12px; font-size: 12px; background: #fff8e1; border: 1px solid #ffe082; border-radius: 4px; padding: 8px; }
+.netem-info h4 { font-size: 11px; color: #666; margin-bottom: 4px; }
+.fault-actions { margin-top: 12px; }
+.fault-actions h4 { font-size: 11px; color: #666; margin-bottom: 6px; }
+.fault-btn { display: block; width: 100%; padding: 6px 12px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: #fff; text-align: left; }
+.fault-btn:hover:not(:disabled) { background: #f5f5f5; }
+.fault-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.fault-btn.down { border-color: #F44336; color: #C62828; }
+.fault-btn.up { border-color: #4CAF50; color: #2E7D32; }
+.fault-btn.netem { border-color: #FFC107; color: #E65100; }
+.fault-btn.clear { border-color: #9E9E9E; color: #555; }
+
+/* FaultDialog */
+.dialog-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.dialog { background: #fff; border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,0.24); width: 360px; max-width: 90vw; }
+.dialog-header { display: flex; justify-content: space-between; align-items: center; padding: 16px 20px 12px; border-bottom: 1px solid #eee; }
+.dialog-header h3 { font-size: 16px; }
+.dialog-body { padding: 16px 20px; }
+.dialog-link { font-size: 12px; font-family: monospace; color: #555; margin-bottom: 12px; background: #f5f5f5; padding: 4px 8px; border-radius: 4px; }
+.dialog label { display: block; margin-bottom: 10px; font-size: 13px; color: #444; }
+.dialog label input { display: block; width: 100%; margin-top: 4px; padding: 6px 8px; border: 1px solid #ccc; border-radius: 4px; font-size: 13px; }
+.dialog label input:focus { outline: none; border-color: #1976D2; }
+.dialog-footer { display: flex; justify-content: flex-end; gap: 8px; padding: 12px 20px 16px; border-top: 1px solid #eee; }
+.dialog-footer button { padding: 6px 16px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: #fff; font-size: 13px; }
+.dialog-footer button:hover { background: #f5f5f5; }
+.btn-primary { background: #1976D2 !important; color: white !important; border-color: #1976D2 !important; }
+.btn-primary:hover { background: #1565C0 !important; }
+
+/* Node Actions */
+.node-actions { margin-top: 12px; }
+.action-btn { display: block; width: 100%; padding: 6px 12px; margin-bottom: 4px; border: 1px solid #ddd; border-radius: 4px; cursor: pointer; background: #fff; }
+.action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.action-btn.start { border-color: #4CAF50; color: #388E3C; }
+.action-btn.stop { border-color: #F44336; color: #D32F2F; }
+.action-btn.restart { border-color: #FF9800; color: #E65100; }
+
+/* Terminal Panel */
+.terminal-panel { display: flex; flex-direction: column; height: 100%; }
+.terminal-panel.empty { display: flex; align-items: center; justify-content: center; color: #aaa; }
+.terminal-tabs { display: flex; background: #2d2d2d; overflow-x: auto; flex-shrink: 0; }
+.terminal-tab { padding: 4px 12px; color: #aaa; cursor: pointer; display: flex; align-items: center; gap: 8px; border-right: 1px solid #444; white-space: nowrap; font-size: 12px; }
+.terminal-tab.active { background: #1e1e1e; color: #fff; }
+.terminal-tab:hover { background: #333; }
+.close-tab { background: none; border: none; color: #aaa; cursor: pointer; font-size: 14px; padding: 0 4px; }
+.close-tab:hover { color: #fff; }
+.terminal-content { flex: 1; overflow: hidden; }

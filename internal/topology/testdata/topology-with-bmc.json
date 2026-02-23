@@ -1,0 +1,28 @@
+{
+  "name": "bmc-topo",
+  "type": "clab",
+  "clab": {"config": {"prefix": "clab", "mgmt": {"network": "clab", "bridge": "br-bmc"}}},
+  "nodes": {
+    "server1": {
+      "index": "0", "shortname": "server1", "longname": "clab-bmc-topo-server1",
+      "fqdn": "server1.bmc-topo.io", "group": "", "labdir": "/tmp/containerlab/clab-bmc-topo/server1",
+      "kind": "linux", "image": "alpine:latest",
+      "mgmt-net": "", "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.2", "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "", "mgmt-ipv6-prefix-length": 64, "mac-address": "",
+      "labels": {"containerlab": "bmc-topo", "clab-node-kind": "linux", "graph-role": "server"},
+      "port-bindings": []
+    },
+    "bmc1": {
+      "index": "1", "shortname": "bmc1", "longname": "clab-bmc-topo-bmc1",
+      "fqdn": "bmc1.bmc-topo.io", "group": "", "labdir": "/tmp/containerlab/clab-bmc-topo/bmc1",
+      "kind": "linux", "image": "ghcr.io/tjst-t/qemu-bmc:latest",
+      "mgmt-net": "", "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.3", "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "", "mgmt-ipv6-prefix-length": 64, "mac-address": "",
+      "labels": {"containerlab": "bmc-topo", "clab-node-kind": "linux", "graph-bmc": "true", "graph-role": "bmc"},
+      "port-bindings": [{"host-ip": "0.0.0.0", "host-port": 8443, "port": 443, "protocol": "tcp"}]
+    }
+  },
+  "links": []
+}

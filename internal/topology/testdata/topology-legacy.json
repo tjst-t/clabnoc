@@ -1,0 +1,30 @@
+{
+  "name": "test-legacy",
+  "type": "clab",
+  "clab": {"config": {"prefix": "clab", "mgmt": {"network": "clab", "bridge": "br-legacy"}}},
+  "nodes": {
+    "spine1": {
+      "index": "0", "shortname": "spine1", "longname": "clab-test-legacy-spine1",
+      "fqdn": "spine1.test-legacy.io", "group": "", "labdir": "/tmp/containerlab/clab-test-legacy/spine1",
+      "kind": "nokia_srlinux", "image": "ghcr.io/nokia/srlinux:24.10.1",
+      "mgmt-net": "", "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.2", "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "", "mgmt-ipv6-prefix-length": 64, "mac-address": "",
+      "labels": {"containerlab": "test-legacy", "clab-node-kind": "nokia_srlinux", "graph-dc": "dc1", "graph-rack": "rack1", "graph-role": "spine"},
+      "port-bindings": []
+    },
+    "leaf1": {
+      "index": "1", "shortname": "leaf1", "longname": "clab-test-legacy-leaf1",
+      "fqdn": "leaf1.test-legacy.io", "group": "", "labdir": "/tmp/containerlab/clab-test-legacy/leaf1",
+      "kind": "nokia_srlinux", "image": "ghcr.io/nokia/srlinux:24.10.1",
+      "mgmt-net": "", "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.3", "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "", "mgmt-ipv6-prefix-length": 64, "mac-address": "",
+      "labels": {"containerlab": "test-legacy", "clab-node-kind": "nokia_srlinux", "graph-dc": "dc1", "graph-rack": "rack1", "graph-role": "leaf"},
+      "port-bindings": []
+    }
+  },
+  "links": [
+    {"a": {"node": "spine1", "interface": "e1-1", "mac": "aa:c1:ab:01:01:01"}, "z": {"node": "leaf1", "interface": "e1-49", "mac": "aa:c1:ab:01:01:02"}}
+  ]
+}

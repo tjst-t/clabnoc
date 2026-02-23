@@ -1,0 +1,11 @@
+# Go
+bin/
+*.exe
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Build artifacts
+internal/frontend/dist/assets/
+internal/frontend/dist/index.html

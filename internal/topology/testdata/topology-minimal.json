@@ -1,0 +1,18 @@
+{
+  "name": "minimal",
+  "type": "clab",
+  "clab": {"config": {"prefix": "clab", "mgmt": {"network": "clab", "bridge": "br-min"}}},
+  "nodes": {
+    "host1": {
+      "index": "0", "shortname": "host1", "longname": "clab-minimal-host1",
+      "fqdn": "host1.minimal.io", "group": "", "labdir": "/tmp/containerlab/clab-minimal/host1",
+      "kind": "linux", "image": "alpine:latest",
+      "mgmt-net": "", "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.2", "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "", "mgmt-ipv6-prefix-length": 64, "mac-address": "",
+      "labels": {"containerlab": "minimal", "clab-node-kind": "linux"},
+      "port-bindings": []
+    }
+  },
+  "links": []
+}

@@ -12,6 +12,7 @@ build: build-frontend build-backend
 
 build-frontend:
 	cd frontend && npm ci && npm run build
+	cp -r frontend/dist/. internal/frontend/dist/
 
 build-backend:
 	CGO_ENABLED=0 go build -ldflags "-X main.version=$(VERSION)" -o $(BINARY) ./cmd/clabnoc
@@ -54,3 +55,4 @@ docker-run:
 
 clean:
 	rm -rf bin/ frontend/dist/
+	find internal/frontend/dist/ -not -name '.gitkeep' -delete 2>/dev/null || true
