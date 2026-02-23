@@ -2,15 +2,13 @@ import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import type { TerminalTab as TerminalTabType } from '../types/topology';
 import { createExecWebSocket, createSSHWebSocket } from '../lib/api';
+import { terminalInstances } from '../lib/terminal-store';
 
 interface Props {
   project: string;
   tab: TerminalTabType;
   active: boolean;
 }
-
-// Persistent storage for terminal instances and WebSocket connections
-const terminalInstances = new Map<string, { terminal: Terminal; ws: WebSocket }>();
 
 export function TerminalTab({ project, tab, active }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -21,7 +19,7 @@ export function TerminalTab({ project, tab, active }: Props) {
     initializedRef.current = true;
 
     // Check if we already have an instance for this tab
-    let instance = terminalInstances.get(tab.id);
+    const instance = terminalInstances.get(tab.id);
     if (instance) {
       containerRef.current.appendChild(instance.terminal.element!);
       return;
@@ -111,14 +109,4 @@ export function TerminalTab({ project, tab, active }: Props) {
   }, [active, tab.id]);
 
   return <div ref={containerRef} className="w-full h-full" />;
-}
-
-// Cleanup function for when tabs are closed
-export function destroyTerminalTab(tabId: string) {
-  const instance = terminalInstances.get(tabId);
-  if (instance) {
-    instance.ws.close();
-    instance.terminal.dispose();
-    terminalInstances.delete(tabId);
-  }
 }

@@ -11,7 +11,7 @@ import { NodePanel } from './components/NodePanel';
 import { LinkPanel } from './components/LinkPanel';
 import { TerminalPanel } from './components/TerminalPanel';
 import { FaultDialog } from './components/FaultDialog';
-import { destroyTerminalTab } from './components/TerminalTab';
+import { destroyTerminalTab } from './lib/terminal-store';
 
 export default function App() {
   const [selectedProject, setSelectedProject] = useState<string | null>(null);
