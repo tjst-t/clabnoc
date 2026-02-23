@@ -1,0 +1,61 @@
+{
+  "name": "bmc-lab",
+  "type": "clab",
+  "nodes": {
+    "server1": {
+      "index": "0",
+      "shortname": "server1",
+      "longname": "clab-bmc-lab-server1",
+      "fqdn": "server1.bmc-lab.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-bmc-lab/server1",
+      "kind": "linux",
+      "image": "qemu-bmc:latest",
+      "mgmt-ipv4-address": "172.20.20.5",
+      "mgmt-ipv4-prefix-length": 24,
+      "labels": {
+        "containerlab": "bmc-lab",
+        "graph-bmc": "true",
+        "graph-dc": "dc1",
+        "graph-rack": "rack1",
+        "graph-role": "server"
+      },
+      "port-bindings": [
+        {
+          "host-ip": "0.0.0.0",
+          "host-port": 6080,
+          "port": 6080,
+          "protocol": "tcp"
+        }
+      ]
+    },
+    "server1-bmc": {
+      "index": "1",
+      "shortname": "server1-bmc",
+      "longname": "clab-bmc-lab-server1-bmc",
+      "fqdn": "server1-bmc.bmc-lab.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-bmc-lab/server1-bmc",
+      "kind": "linux",
+      "image": "qemu-bmc:latest",
+      "mgmt-ipv4-address": "172.20.20.6",
+      "mgmt-ipv4-prefix-length": 24,
+      "labels": {
+        "containerlab": "bmc-lab",
+        "graph-bmc": "true",
+        "graph-bmc-pair": "server1",
+        "graph-dc": "dc1",
+        "graph-rack": "rack1",
+        "graph-role": "bmc"
+      }
+    }
+  },
+  "links": [
+    {
+      "endpoints": {
+        "a": { "node": "server1", "interface": "eth1", "mac": "aa:bb:01:01:01:01", "peer": "z" },
+        "z": { "node": "server1-bmc", "interface": "eth1", "mac": "aa:bb:02:02:02:02", "peer": "a" }
+      }
+    }
+  ]
+}

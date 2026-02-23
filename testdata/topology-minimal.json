@@ -1,0 +1,23 @@
+{
+  "name": "minimal",
+  "type": "clab",
+  "nodes": {
+    "node1": {
+      "index": "0",
+      "shortname": "node1",
+      "longname": "clab-minimal-node1",
+      "fqdn": "node1.minimal.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-minimal/node1",
+      "kind": "linux",
+      "image": "alpine:latest",
+      "mgmt-ipv4-address": "172.20.20.100",
+      "mgmt-ipv4-prefix-length": 24,
+      "labels": {
+        "containerlab": "minimal",
+        "clab-node-name": "node1"
+      }
+    }
+  },
+  "links": []
+}

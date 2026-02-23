@@ -1,0 +1,61 @@
+{
+  "name": "grouped-lab",
+  "type": "clab",
+  "nodes": {
+    "spine1": {
+      "index": "0",
+      "shortname": "spine1",
+      "longname": "clab-grouped-lab-spine1",
+      "fqdn": "spine1.grouped-lab.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-grouped-lab/spine1",
+      "kind": "nokia_srlinux",
+      "image": "srlinux:latest",
+      "mgmt-ipv4-address": "172.20.20.2",
+      "mgmt-ipv4-prefix-length": 24,
+      "labels": {
+        "containerlab": "grouped-lab",
+        "graph-dc": "dc1",
+        "graph-rack": "rack1",
+        "graph-role": "spine"
+      }
+    },
+    "spine2": {
+      "index": "1",
+      "shortname": "spine2",
+      "longname": "clab-grouped-lab-spine2",
+      "fqdn": "spine2.grouped-lab.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-grouped-lab/spine2",
+      "kind": "nokia_srlinux",
+      "image": "srlinux:latest",
+      "mgmt-ipv4-address": "172.20.20.3",
+      "mgmt-ipv4-prefix-length": 24,
+      "labels": {
+        "containerlab": "grouped-lab",
+        "graph-dc": "dc1",
+        "graph-rack": "rack2",
+        "graph-role": "spine"
+      }
+    },
+    "leaf1": {
+      "index": "2",
+      "shortname": "leaf1",
+      "longname": "clab-grouped-lab-leaf1",
+      "fqdn": "leaf1.grouped-lab.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-grouped-lab/leaf1",
+      "kind": "nokia_srlinux",
+      "image": "srlinux:latest",
+      "mgmt-ipv4-address": "172.20.20.4",
+      "mgmt-ipv4-prefix-length": 24,
+      "labels": {
+        "containerlab": "grouped-lab",
+        "graph-dc": "dc1",
+        "graph-rack": "rack1",
+        "graph-role": "leaf"
+      }
+    }
+  },
+  "links": []
+}

@@ -1,0 +1,76 @@
+{
+  "name": "legacy-lab",
+  "type": "clab",
+  "clab": {
+    "config": {
+      "prefix": "clab",
+      "mgmt": {
+        "network": "clab",
+        "bridge": "br-BBBB",
+        "ipv4-subnet": "172.20.20.0/24"
+      }
+    }
+  },
+  "nodes": {
+    "router1": {
+      "index": "0",
+      "shortname": "router1",
+      "longname": "clab-legacy-lab-router1",
+      "fqdn": "router1.legacy-lab.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-legacy-lab/router1",
+      "kind": "crpd",
+      "image": "crpd:latest",
+      "mgmt-net": "",
+      "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.10",
+      "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "",
+      "mgmt-ipv6-prefix-length": 0,
+      "mac-address": "",
+      "labels": {
+        "clab-node-kind": "crpd",
+        "clab-node-name": "router1",
+        "containerlab": "legacy-lab"
+      },
+      "port-bindings": []
+    },
+    "switch1": {
+      "index": "1",
+      "shortname": "switch1",
+      "longname": "clab-legacy-lab-switch1",
+      "fqdn": "switch1.legacy-lab.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-legacy-lab/switch1",
+      "kind": "ceos",
+      "image": "ceos:latest",
+      "mgmt-net": "",
+      "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.11",
+      "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "",
+      "mgmt-ipv6-prefix-length": 0,
+      "mac-address": "",
+      "labels": {
+        "clab-node-kind": "ceos",
+        "clab-node-name": "switch1",
+        "containerlab": "legacy-lab"
+      },
+      "port-bindings": []
+    }
+  },
+  "links": [
+    {
+      "a": {
+        "node": "router1",
+        "interface": "eth1",
+        "mac": "aa:bb:cc:dd:ee:01"
+      },
+      "z": {
+        "node": "switch1",
+        "interface": "eth1",
+        "mac": "aa:bb:cc:dd:ee:02"
+      }
+    }
+  ]
+}

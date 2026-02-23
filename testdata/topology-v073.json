@@ -1,0 +1,132 @@
+{
+  "name": "dc-fabric",
+  "type": "clab",
+  "clab": {
+    "config": {
+      "prefix": "clab",
+      "mgmt": {
+        "network": "clab",
+        "bridge": "br-AAAA",
+        "ipv4-subnet": "172.20.20.0/24",
+        "ipv4-gw": "172.20.20.1"
+      }
+    }
+  },
+  "nodes": {
+    "spine1": {
+      "index": "0",
+      "shortname": "spine1",
+      "longname": "clab-dc-fabric-spine1",
+      "fqdn": "spine1.dc-fabric.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-dc-fabric/spine1",
+      "kind": "nokia_srlinux",
+      "image": "ghcr.io/nokia/srlinux:24.10.1",
+      "mgmt-net": "",
+      "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.2",
+      "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "3fff:172:20:20::2",
+      "mgmt-ipv6-prefix-length": 64,
+      "mac-address": "",
+      "labels": {
+        "clab-node-kind": "nokia_srlinux",
+        "clab-node-name": "spine1",
+        "containerlab": "dc-fabric",
+        "graph-dc": "dc1",
+        "graph-rack": "rack1",
+        "graph-rack-unit": "40",
+        "graph-role": "spine"
+      },
+      "port-bindings": []
+    },
+    "leaf1": {
+      "index": "1",
+      "shortname": "leaf1",
+      "longname": "clab-dc-fabric-leaf1",
+      "fqdn": "leaf1.dc-fabric.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-dc-fabric/leaf1",
+      "kind": "nokia_srlinux",
+      "image": "ghcr.io/nokia/srlinux:24.10.1",
+      "mgmt-net": "",
+      "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.3",
+      "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "3fff:172:20:20::3",
+      "mgmt-ipv6-prefix-length": 64,
+      "mac-address": "",
+      "labels": {
+        "clab-node-kind": "nokia_srlinux",
+        "clab-node-name": "leaf1",
+        "containerlab": "dc-fabric",
+        "graph-dc": "dc1",
+        "graph-rack": "rack1",
+        "graph-rack-unit": "20",
+        "graph-role": "leaf"
+      },
+      "port-bindings": []
+    },
+    "server1": {
+      "index": "2",
+      "shortname": "server1",
+      "longname": "clab-dc-fabric-server1",
+      "fqdn": "server1.dc-fabric.io",
+      "group": "",
+      "labdir": "/tmp/containerlab/clab-dc-fabric/server1",
+      "kind": "linux",
+      "image": "ubuntu:22.04",
+      "mgmt-net": "",
+      "mgmt-intf": "",
+      "mgmt-ipv4-address": "172.20.20.4",
+      "mgmt-ipv4-prefix-length": 24,
+      "mgmt-ipv6-address": "",
+      "mgmt-ipv6-prefix-length": 0,
+      "mac-address": "",
+      "labels": {
+        "clab-node-kind": "linux",
+        "clab-node-name": "server1",
+        "containerlab": "dc-fabric",
+        "graph-dc": "dc1",
+        "graph-rack": "rack1",
+        "graph-rack-unit": "1",
+        "graph-role": "server"
+      },
+      "port-bindings": []
+    }
+  },
+  "links": [
+    {
+      "endpoints": {
+        "a": {
+          "node": "spine1",
+          "interface": "e1-1",
+          "mac": "aa:c1:ab:04:f3:6e",
+          "peer": "z"
+        },
+        "z": {
+          "node": "leaf1",
+          "interface": "e1-49",
+          "mac": "aa:c1:ab:9b:98:f7",
+          "peer": "a"
+        }
+      }
+    },
+    {
+      "endpoints": {
+        "a": {
+          "node": "leaf1",
+          "interface": "e1-1",
+          "mac": "aa:c1:ab:11:22:33",
+          "peer": "z"
+        },
+        "z": {
+          "node": "server1",
+          "interface": "eth1",
+          "mac": "aa:c1:ab:44:55:66",
+          "peer": "a"
+        }
+      }
+    }
+  ]
+}
