@@ -56,8 +56,14 @@ func DiscoverProjects(ctx context.Context, cli DockerClient) ([]ProjectInfo, err
 	return projects, nil
 }
 
-// GetProjectTopology loads the topology for a specific project.
-func GetProjectTopology(ctx context.Context, cli DockerClient, projectName string) (*topology.Topology, error) {
+// TopologyWithConfig holds a parsed topology and its associated config.
+type TopologyWithConfig struct {
+	Topology *topology.Topology
+	Config   *topology.Config
+}
+
+// GetProjectTopologyWithConfig loads the topology and config for a specific project.
+func GetProjectTopologyWithConfig(ctx context.Context, cli DockerClient, projectName string) (*TopologyWithConfig, error) {
 	projects, err := DiscoverProjects(ctx, cli)
 	if err != nil {
 		return nil, err
@@ -84,13 +90,16 @@ func GetProjectTopology(ctx context.Context, cli DockerClient, projectName strin
 		return nil, fmt.Errorf("parsing topology: %w", err)
 	}
 
+	var cfg *topology.Config
+
 	// Load .clabnoc.yml config if available
 	if cfgPath := topology.FindConfigFile(project.LabDir, projectName); cfgPath != "" {
-		cfg, cfgErr := topology.LoadConfigFile(cfgPath)
+		loadedCfg, cfgErr := topology.LoadConfigFile(cfgPath)
 		if cfgErr != nil {
 			slog.Warn("failed to load .clabnoc.yml", "path", cfgPath, "error", cfgErr)
 		} else {
 			slog.Info("applying .clabnoc.yml config", "path", cfgPath)
+			cfg = loadedCfg
 			topology.ApplyConfig(topo, cfg)
 		}
 	}
@@ -105,7 +114,16 @@ func GetProjectTopology(ctx context.Context, cli DockerClient, projectName strin
 		}
 	}
 
-	return topo, nil
+	return &TopologyWithConfig{Topology: topo, Config: cfg}, nil
+}
+
+// GetProjectTopology loads the topology for a specific project.
+func GetProjectTopology(ctx context.Context, cli DockerClient, projectName string) (*topology.Topology, error) {
+	result, err := GetProjectTopologyWithConfig(ctx, cli, projectName)
+	if err != nil {
+		return nil, err
+	}
+	return result.Topology, nil
 }
 
 // FindContainerByNode finds a container by project and node name.

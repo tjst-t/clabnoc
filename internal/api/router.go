@@ -31,6 +31,7 @@ func NewRouter(s *Server) http.Handler {
 		r.Get("/projects/{name}/nodes", s.listNodes)
 		r.Get("/projects/{name}/nodes/{node}", s.getNode)
 		r.Post("/projects/{name}/nodes/{node}/action", s.nodeAction)
+		r.Get("/projects/{name}/nodes/{node}/ssh-credentials", s.getSSHCredentials)
 		r.Get("/projects/{name}/nodes/{node}/exec", s.execTerminal)
 		r.Get("/projects/{name}/nodes/{node}/ssh", s.sshTerminal)
 		r.Get("/projects/{name}/links", s.listLinks)

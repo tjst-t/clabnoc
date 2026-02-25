@@ -1,6 +1,8 @@
 package api
 
 import (
+	"encoding/json"
+	"fmt"
 	"log/slog"
 	"net/http"
 
@@ -8,6 +10,7 @@ import (
 	"github.com/gorilla/websocket"
 	"github.com/tjst-t/clabnoc/internal/docker"
 	sshproxy "github.com/tjst-t/clabnoc/internal/ssh"
+	"github.com/tjst-t/clabnoc/internal/topology"
 )
 
 var upgrader = websocket.Upgrader{
@@ -42,18 +45,40 @@ func (s *Server) execTerminal(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (s *Server) getSSHCredentials(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+	nodeName := chi.URLParam(r, "node")
+
+	result, err := docker.GetProjectTopologyWithConfig(r.Context(), s.Docker, name)
+	if err != nil {
+		slog.Error("failed to get topology for SSH credentials", "project", name, "error", err)
+		http.Error(w, "topology not found", http.StatusInternalServerError)
+		return
+	}
+
+	var kind string
+	for _, node := range result.Topology.Nodes {
+		if node.Name == nodeName {
+			kind = node.Kind
+			break
+		}
+	}
+
+	creds := topology.ResolveSSHCredentials(kind, nodeName, result.Config)
+
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(creds)
+}
+
 func (s *Server) sshTerminal(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 	nodeName := chi.URLParam(r, "node")
-	user := r.URL.Query().Get("user")
-	if user == "" {
-		user = "admin"
-	}
-	port := r.URL.Query().Get("port")
-	if port == "" {
-		port = "22"
-	}
-	password := r.URL.Query().Get("password")
+
+	// Legacy support: if query params are provided, use them
+	legacyUser := r.URL.Query().Get("user")
+	legacyPort := r.URL.Query().Get("port")
+	legacyPassword := r.URL.Query().Get("password")
+	useLegacy := legacyUser != "" || legacyPort != ""
 
 	topo, err := docker.GetProjectTopology(r.Context(), s.Docker, name)
 	if err != nil {
@@ -80,6 +105,44 @@ func (s *Server) sshTerminal(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer ws.Close()
+
+	var user, password, port string
+
+	if useLegacy {
+		// Legacy query parameter mode
+		user = legacyUser
+		if user == "" {
+			user = "admin"
+		}
+		port = legacyPort
+		if port == "" {
+			port = "22"
+		}
+		password = legacyPassword
+	} else {
+		// New mode: read credentials from first WebSocket message
+		_, msg, err := ws.ReadMessage()
+		if err != nil {
+			slog.Error("failed to read SSH credentials from WebSocket", "error", err)
+			return
+		}
+
+		var creds topology.SSHCredentials
+		if err := json.Unmarshal(msg, &creds); err != nil {
+			slog.Error("failed to parse SSH credentials", "error", err)
+			return
+		}
+
+		user = creds.Username
+		if user == "" {
+			user = "admin"
+		}
+		password = creds.Password
+		port = "22"
+		if creds.Port > 0 {
+			port = fmt.Sprintf("%d", creds.Port)
+		}
+	}
 
 	proxy := sshproxy.NewProxy(mgmtIP+":"+port, user, password)
 	if err := proxy.Bridge(ws); err != nil {
