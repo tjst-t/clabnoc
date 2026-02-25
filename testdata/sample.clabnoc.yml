@@ -6,6 +6,15 @@ racks:
     dc: dc-a
     units: 48
 
+kind_defaults:
+  nokia_srlinux:
+    ssh:
+      username: admin
+      password: NokiaSrl1!
+  linux:
+    ssh:
+      username: root
+
 nodes:
   spine-sw-01:
     rack: rack-a01
@@ -17,6 +26,10 @@ nodes:
     unit: 39
     size: 2
     role: server
+    ssh:
+      username: ubuntu
+      password: ubuntu
+      port: 2222
   gpu-node-01:
     rack: rack-a01
     unit: 31

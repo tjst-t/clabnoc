@@ -48,6 +48,32 @@ func TestLoadConfigFile(t *testing.T) {
 	if gpu.Size != 4 {
 		t.Errorf("gpu-node-01 Size = %d, want %d", gpu.Size, 4)
 	}
+
+	// Check kind_defaults
+	if len(cfg.KindDefaults) != 2 {
+		t.Fatalf("expected 2 kind_defaults, got %d", len(cfg.KindDefaults))
+	}
+	srlKD := cfg.KindDefaults["nokia_srlinux"]
+	if srlKD.SSH == nil {
+		t.Fatal("nokia_srlinux kind_defaults SSH is nil")
+	}
+	if srlKD.SSH.Username != "admin" {
+		t.Errorf("nokia_srlinux SSH Username = %q, want %q", srlKD.SSH.Username, "admin")
+	}
+	if srlKD.SSH.Password != "NokiaSrl1!" {
+		t.Errorf("nokia_srlinux SSH Password = %q, want %q", srlKD.SSH.Password, "NokiaSrl1!")
+	}
+
+	// Check node-level SSH
+	if compute.SSH == nil {
+		t.Fatal("compute-01 SSH is nil")
+	}
+	if compute.SSH.Username != "ubuntu" {
+		t.Errorf("compute-01 SSH Username = %q, want %q", compute.SSH.Username, "ubuntu")
+	}
+	if compute.SSH.Port != 2222 {
+		t.Errorf("compute-01 SSH Port = %d, want %d", compute.SSH.Port, 2222)
+	}
 }
 
 func TestLoadConfigFileDefaults(t *testing.T) {

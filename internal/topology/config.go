@@ -12,8 +12,14 @@ import (
 
 // Config represents .clabnoc.yml configuration.
 type Config struct {
-	Racks map[string]RackConfig `yaml:"racks"`
-	Nodes map[string]NodeConfig `yaml:"nodes"`
+	Racks        map[string]RackConfig `yaml:"racks"`
+	KindDefaults map[string]KindConfig `yaml:"kind_defaults"`
+	Nodes        map[string]NodeConfig `yaml:"nodes"`
+}
+
+// KindConfig holds kind-level configuration overrides.
+type KindConfig struct {
+	SSH *SSHCredentials `yaml:"ssh"`
 }
 
 // RackConfig holds rack-level configuration.
@@ -24,10 +30,11 @@ type RackConfig struct {
 
 // NodeConfig holds node-level visualization configuration.
 type NodeConfig struct {
-	Rack string `yaml:"rack"`
-	Unit int    `yaml:"unit"`
-	Size int    `yaml:"size"` // default 1
-	Role string `yaml:"role"`
+	Rack string          `yaml:"rack"`
+	Unit int             `yaml:"unit"`
+	Size int             `yaml:"size"` // default 1
+	Role string          `yaml:"role"`
+	SSH  *SSHCredentials `yaml:"ssh"`
 }
 
 // FindConfigFile searches for .clabnoc.yml relative to labDir.
