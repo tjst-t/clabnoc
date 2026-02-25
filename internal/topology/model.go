@@ -64,10 +64,11 @@ type RawEndpoint struct {
 
 // Topology is the processed topology ready for API responses.
 type Topology struct {
-	Name   string            `json:"name"`
-	Nodes  []Node            `json:"nodes"`
-	Links  []Link            `json:"links"`
-	Groups Groups            `json:"groups"`
+	Name     string            `json:"name"`
+	Nodes    []Node            `json:"nodes"`
+	Links    []Link            `json:"links"`
+	Groups   Groups            `json:"groups"`
+	Warnings []string          `json:"warnings,omitempty"`
 }
 
 // Node represents a processed node for API responses.
@@ -94,12 +95,13 @@ type AccessMethod struct {
 
 // GraphInfo holds visualization metadata.
 type GraphInfo struct {
-	DC       string `json:"dc"`
-	Rack     string `json:"rack"`
-	RackUnit int    `json:"rack_unit"`
-	Role     string `json:"role"`
-	Icon     string `json:"icon"`
-	Hidden   bool   `json:"hidden"`
+	DC           string `json:"dc"`
+	Rack         string `json:"rack"`
+	RackUnit     int    `json:"rack_unit"`
+	RackUnitSize int    `json:"rack_unit_size"` // Height in U (default 1)
+	Role         string `json:"role"`
+	Icon         string `json:"icon"`
+	Hidden       bool   `json:"hidden"`
 }
 
 // Link represents a processed link for API responses.
@@ -120,6 +122,7 @@ type Endpoint struct {
 
 // Groups holds the grouping structure for the topology.
 type Groups struct {
-	DCs   []string            `json:"dcs"`
-	Racks map[string][]string `json:"racks"`
+	DCs       []string            `json:"dcs"`
+	Racks     map[string][]string `json:"racks"`
+	RackUnits map[string]int      `json:"rack_units,omitempty"` // rack name → total U count
 }

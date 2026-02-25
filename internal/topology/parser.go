@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 )
@@ -41,7 +42,15 @@ func Convert(raw *RawTopology) *Topology {
 	dcSet := map[string]bool{}
 	racksByDC := map[string]map[string]bool{}
 
-	for name, rn := range raw.Nodes {
+	// Sort node names for deterministic output
+	nodeNames := make([]string, 0, len(raw.Nodes))
+	for name := range raw.Nodes {
+		nodeNames = append(nodeNames, name)
+	}
+	sort.Strings(nodeNames)
+
+	for _, name := range nodeNames {
+		rn := raw.Nodes[name]
 		node := convertNode(name, rn)
 		if node.Graph.Hidden {
 			continue
@@ -63,6 +72,14 @@ func Convert(raw *RawTopology) *Topology {
 		}
 	}
 
+	// Sort DCs alphabetically
+	sort.Strings(topo.Groups.DCs)
+
+	// Sort racks within each DC alphabetically
+	for dc := range topo.Groups.Racks {
+		sort.Strings(topo.Groups.Racks[dc])
+	}
+
 	for _, rl := range raw.Links {
 		link := convertLink(rl)
 		topo.Links = append(topo.Links, link)
@@ -77,11 +94,13 @@ func convertNode(name string, rn RawNode) Node {
 		labels = map[string]string{}
 	}
 
+	bmc := isBMC(rn.Image, labels)
+
 	graph := GraphInfo{
 		DC:     labels["graph-dc"],
 		Rack:   labels["graph-rack"],
 		Role:   labels["graph-role"],
-		Icon:   resolveIcon(rn.Kind, labels),
+		Icon:   resolveIcon(rn.Kind, labels, bmc),
 		Hidden: labels["graph-hide"] == "yes",
 	}
 
@@ -89,8 +108,14 @@ func convertNode(name string, rn RawNode) Node {
 		graph.RackUnit = u
 	}
 
+	if s, err := strconv.Atoi(labels["graph-rack-unit-size"]); err == nil && s > 0 {
+		graph.RackUnitSize = s
+	} else {
+		graph.RackUnitSize = 1
+	}
+
 	if graph.Role == "" {
-		graph.Role = inferRole(rn.Kind, labels)
+		graph.Role = inferRole(rn.Kind, labels, bmc)
 	}
 
 	accessMethods := []AccessMethod{
@@ -103,7 +128,7 @@ func convertNode(name string, rn RawNode) Node {
 			Target: rn.MgmtIPv4 + ":22",
 		})
 	}
-	if labels["graph-bmc"] == "true" && rn.MgmtIPv4 != "" {
+	if bmc && rn.MgmtIPv4 != "" {
 		accessMethods = append(accessMethods, AccessMethod{
 			Type:   "vnc",
 			Label:  "noVNC (BMC)",
@@ -146,7 +171,16 @@ func convertLink(rl RawLink) Link {
 	}
 }
 
-func resolveIcon(kind string, labels map[string]string) string {
+// isBMC returns true if the node is a BMC, detected by label or image name.
+func isBMC(image string, labels map[string]string) bool {
+	if labels["graph-bmc"] == "true" {
+		return true
+	}
+	// Auto-detect qemu-bmc by image name (e.g. "qemu-bmc:latest", "ghcr.io/foo/qemu-bmc:v1")
+	return strings.Contains(strings.ToLower(image), "qemu-bmc")
+}
+
+func resolveIcon(kind string, labels map[string]string, bmc bool) string {
 	if icon := labels["graph-icon"]; icon != "" {
 		return icon
 	}
@@ -159,7 +193,7 @@ func resolveIcon(kind string, labels map[string]string) string {
 		return "router"
 	case kind == "linux":
 		role := labels["graph-role"]
-		if role == "bmc" || labels["graph-bmc"] == "true" {
+		if role == "bmc" || bmc {
 			return "bmc"
 		}
 		if role == "spine" || role == "leaf" {
@@ -174,7 +208,7 @@ func resolveIcon(kind string, labels map[string]string) string {
 	}
 }
 
-func inferRole(kind string, labels map[string]string) string {
+func inferRole(kind string, labels map[string]string, bmc bool) string {
 	kind = strings.ToLower(kind)
 	switch {
 	case kind == "nokia_srlinux" || kind == "ceos":
@@ -182,7 +216,7 @@ func inferRole(kind string, labels map[string]string) string {
 	case kind == "crpd" || strings.HasPrefix(kind, "vr-"):
 		return "router"
 	case kind == "linux":
-		if labels["graph-bmc"] == "true" {
+		if bmc {
 			return "bmc"
 		}
 		return "server"

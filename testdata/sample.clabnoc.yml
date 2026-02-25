@@ -1,0 +1,29 @@
+racks:
+  rack-a01:
+    dc: dc-a
+    units: 42
+  rack-a02:
+    dc: dc-a
+    units: 48
+
+nodes:
+  spine-sw-01:
+    rack: rack-a01
+    unit: 42
+    size: 1
+    role: spine
+  compute-01:
+    rack: rack-a01
+    unit: 39
+    size: 2
+    role: server
+  gpu-node-01:
+    rack: rack-a01
+    unit: 31
+    size: 4
+    role: server
+  leaf-sw-01:
+    rack: rack-a02
+    unit: 42
+    size: 1
+    role: leaf

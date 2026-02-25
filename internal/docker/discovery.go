@@ -84,7 +84,27 @@ func GetProjectTopology(ctx context.Context, cli DockerClient, projectName strin
 		return nil, fmt.Errorf("parsing topology: %w", err)
 	}
 
+	// Load .clabnoc.yml config if available
+	if cfgPath := topology.FindConfigFile(project.LabDir, projectName); cfgPath != "" {
+		cfg, cfgErr := topology.LoadConfigFile(cfgPath)
+		if cfgErr != nil {
+			slog.Warn("failed to load .clabnoc.yml", "path", cfgPath, "error", cfgErr)
+		} else {
+			slog.Info("applying .clabnoc.yml config", "path", cfgPath)
+			topology.ApplyConfig(topo, cfg)
+		}
+	}
+
 	enrichWithContainerInfo(topo, project.Containers)
+
+	// Validate layout and attach warnings
+	if warns := topology.ValidateLayout(topo); len(warns) > 0 {
+		topo.Warnings = warns
+		for _, w := range warns {
+			slog.Warn("layout validation", "project", projectName, "warning", w)
+		}
+	}
+
 	return topo, nil
 }
 

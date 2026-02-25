@@ -150,24 +150,26 @@ func TestIconResolution(t *testing.T) {
 		name     string
 		kind     string
 		labels   map[string]string
+		bmc      bool
 		wantIcon string
 	}{
-		{"srlinux", "nokia_srlinux", map[string]string{}, "switch"},
-		{"ceos", "ceos", map[string]string{}, "switch"},
-		{"crpd", "crpd", map[string]string{}, "router"},
-		{"vr-router", "vr-sros", map[string]string{}, "router"},
-		{"linux-server", "linux", map[string]string{"graph-role": "server"}, "server"},
-		{"linux-bmc", "linux", map[string]string{"graph-bmc": "true"}, "bmc"},
-		{"linux-spine", "linux", map[string]string{"graph-role": "spine"}, "switch"},
-		{"linux-default", "linux", map[string]string{}, "host"},
-		{"explicit-icon", "linux", map[string]string{"graph-icon": "router"}, "router"},
+		{"srlinux", "nokia_srlinux", map[string]string{}, false, "switch"},
+		{"ceos", "ceos", map[string]string{}, false, "switch"},
+		{"crpd", "crpd", map[string]string{}, false, "router"},
+		{"vr-router", "vr-sros", map[string]string{}, false, "router"},
+		{"linux-server", "linux", map[string]string{"graph-role": "server"}, false, "server"},
+		{"linux-bmc-label", "linux", map[string]string{"graph-bmc": "true"}, true, "bmc"},
+		{"linux-bmc-image", "linux", map[string]string{}, true, "bmc"},
+		{"linux-spine", "linux", map[string]string{"graph-role": "spine"}, false, "switch"},
+		{"linux-default", "linux", map[string]string{}, false, "host"},
+		{"explicit-icon", "linux", map[string]string{"graph-icon": "router"}, false, "router"},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := resolveIcon(tt.kind, tt.labels)
+			got := resolveIcon(tt.kind, tt.labels, tt.bmc)
 			if got != tt.wantIcon {
-				t.Errorf("resolveIcon(%q, %v) = %q, want %q", tt.kind, tt.labels, got, tt.wantIcon)
+				t.Errorf("resolveIcon(%q, %v, %v) = %q, want %q", tt.kind, tt.labels, tt.bmc, got, tt.wantIcon)
 			}
 		})
 	}
@@ -190,6 +192,96 @@ func TestBMCAccessMethods(t *testing.T) {
 		}
 		if node.Labels["graph-bmc"] == "true" && !hasVNC {
 			t.Errorf("node %s has graph-bmc=true but no VNC access method", node.Name)
+		}
+	}
+}
+
+func TestIsBMC(t *testing.T) {
+	tests := []struct {
+		name   string
+		image  string
+		labels map[string]string
+		want   bool
+	}{
+		{"label-only", "alpine:latest", map[string]string{"graph-bmc": "true"}, true},
+		{"image-only", "qemu-bmc:latest", map[string]string{}, true},
+		{"image-with-registry", "ghcr.io/tjst-t/qemu-bmc:v1.0", map[string]string{}, true},
+		{"image-case-insensitive", "Qemu-BMC:latest", map[string]string{}, true},
+		{"neither", "alpine:latest", map[string]string{}, false},
+		{"similar-name", "not-qemu-bmcd:latest", map[string]string{}, true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := isBMC(tt.image, tt.labels)
+			if got != tt.want {
+				t.Errorf("isBMC(%q, %v) = %v, want %v", tt.image, tt.labels, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestQemuBMCImageAutoDetectsVNC(t *testing.T) {
+	// Test that a node with qemu-bmc image (without graph-bmc label) gets VNC access method
+	data := []byte(`{
+		"name": "auto-bmc",
+		"nodes": {
+			"bmc1": {
+				"shortname": "bmc1",
+				"kind": "linux",
+				"image": "qemu-bmc:latest",
+				"mgmt-ipv4-address": "172.20.20.10",
+				"labels": {
+					"containerlab": "auto-bmc"
+				}
+			},
+			"server1": {
+				"shortname": "server1",
+				"kind": "linux",
+				"image": "alpine:latest",
+				"mgmt-ipv4-address": "172.20.20.11",
+				"labels": {
+					"containerlab": "auto-bmc"
+				}
+			}
+		},
+		"links": []
+	}`)
+
+	topo, err := Parse(data)
+	if err != nil {
+		t.Fatalf("Parse failed: %v", err)
+	}
+
+	for _, node := range topo.Nodes {
+		hasVNC := false
+		var vncTarget string
+		for _, am := range node.AccessMethods {
+			if am.Type == "vnc" {
+				hasVNC = true
+				vncTarget = am.Target
+			}
+		}
+
+		switch node.Name {
+		case "bmc1":
+			if !hasVNC {
+				t.Errorf("node bmc1 (qemu-bmc image) should have VNC access method")
+			}
+			expectedTarget := "https://172.20.20.10/novnc/vnc.html"
+			if vncTarget != expectedTarget {
+				t.Errorf("bmc1 VNC target = %q, want %q", vncTarget, expectedTarget)
+			}
+			if node.Graph.Icon != "bmc" {
+				t.Errorf("bmc1 icon = %q, want %q", node.Graph.Icon, "bmc")
+			}
+			if node.Graph.Role != "bmc" {
+				t.Errorf("bmc1 role = %q, want %q", node.Graph.Role, "bmc")
+			}
+		case "server1":
+			if hasVNC {
+				t.Errorf("node server1 (alpine image) should NOT have VNC access method")
+			}
 		}
 	}
 }
