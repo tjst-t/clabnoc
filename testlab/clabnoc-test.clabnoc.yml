@@ -1,0 +1,32 @@
+# clabnoc visualization config for clabnoc-test topology
+# This file overrides graph-* labels in the clab YAML
+
+racks:
+  rack1:
+    dc: dc1
+    units: 15
+  rack2:
+    dc: dc1
+    units: 10       # taller rack to test variable rack height
+
+nodes:
+  spine:
+    rack: rack1
+    unit: 15
+    size: 1
+    role: spine
+  leaf:
+    rack: rack2
+    unit: 10
+    size: 1
+    role: leaf
+  server01:
+    rack: rack2
+    unit: 1
+    size: 2         # 2U BMC server
+    role: server
+  client:
+    rack: rack1
+    unit: 15
+    size: 1
+    role: server
