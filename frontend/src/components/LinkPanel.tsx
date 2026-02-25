@@ -17,7 +17,7 @@ export function LinkPanel({ link, onClose, onFaultAction, onOpenNetemDialog }: P
   const state = STATE_DISPLAY[link.state] ?? STATE_DISPLAY.up!;
 
   return (
-    <div className="w-72 h-full bg-noc-bg tui-border-l overflow-y-auto animate-fade-in flex flex-col">
+    <div className="w-72 shrink-0 h-full bg-noc-surface tui-border-l overflow-y-auto animate-fade-in flex flex-col">
       {/* ─── Header ─── */}
       <div className="tui-border-b px-3 py-1.5 flex items-center justify-between shrink-0">
         <div className="flex items-center gap-2 text-xs">

@@ -140,4 +140,31 @@
   .tui-btn-dim:hover {
     color: #8a9aae;
   }
+
+  /* Drag handles for resizable panels */
+  .drag-handle-v {
+    width: 4px;
+    cursor: col-resize;
+    background: #2a3a4e;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .drag-handle-v:hover,
+  .drag-handle-v.dragging {
+    background: #00c8ff;
+  }
+
+  .drag-handle-h {
+    height: 4px;
+    cursor: row-resize;
+    background: #2a3a4e;
+    flex-shrink: 0;
+    transition: background 0.15s;
+  }
+
+  .drag-handle-h:hover,
+  .drag-handle-h.dragging {
+    background: #00c8ff;
+  }
 }

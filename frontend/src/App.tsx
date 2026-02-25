@@ -1,28 +1,67 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import type { TopologyNode, TopologyLink, ApiEvent, NetemParams } from './types/topology';
 import { useProjects } from './hooks/useProjects';
 import { useTopology } from './hooks/useTopology';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useTerminalTabs } from './hooks/useTerminalTabs';
+import { useResizable } from './hooks/useResizable';
 import { nodeAction, injectFault } from './lib/api';
 import { ProjectSelector } from './components/ProjectSelector';
 import { TopologyView } from './components/TopologyView';
-import { NodePanel } from './components/NodePanel';
-import { LinkPanel } from './components/LinkPanel';
+import { DetailPanel } from './components/DetailPanel';
 import { TerminalPanel } from './components/TerminalPanel';
 import { FaultDialog } from './components/FaultDialog';
 import { destroyTerminalTab } from './lib/terminal-store';
 
+function useIsMobile(breakpoint = 768) {
+  const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpoint]);
+  return isMobile;
+}
+
 export default function App() {
-  const [selectedProject, setSelectedProject] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  const [selectedProject, setSelectedProject] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('project');
+  });
   const [selectedNode, setSelectedNode] = useState<TopologyNode | null>(null);
   const [selectedLink, setSelectedLink] = useState<TopologyLink | null>(null);
   const [netemDialogLink, setNetemDialogLink] = useState<TopologyLink | null>(null);
   const [terminalCollapsed, setTerminalCollapsed] = useState(false);
 
+  // Sync selected project to URL
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (selectedProject) {
+      url.searchParams.set('project', selectedProject);
+    } else {
+      url.searchParams.delete('project');
+    }
+    window.history.replaceState(null, '', url.toString());
+  }, [selectedProject]);
+
   const { projects, loading: projectsLoading } = useProjects();
   const { topology, refresh: refreshTopology } = useTopology(selectedProject);
   const { tabs, activeTabId, setActiveTabId, addTab, removeTab } = useTerminalTabs(selectedProject);
+
+  const { size: detailWidth, handleMouseDown: onDetailDrag } = useResizable({
+    direction: 'horizontal',
+    initialSize: 288,
+    minSize: 200,
+    maxSize: 600,
+  });
+  const { size: terminalHeight, handleMouseDown: onTerminalDrag } = useResizable({
+    direction: 'vertical',
+    initialSize: 256,
+    minSize: 80,
+    maxSize: Math.round(window.innerHeight * 0.6),
+  });
 
   // Event handler
   const handleEvent = useCallback(
@@ -109,8 +148,6 @@ export default function App() {
     [selectedProject, refreshTopology]
   );
 
-  const hasPanel = selectedNode || selectedLink;
-
   return (
     <div className="h-screen flex flex-col overflow-hidden bg-noc-bg text-noc-text font-mono" onClick={closeContextMenu}>
       {/* ┌─── Header ───┐ */}
@@ -129,130 +166,129 @@ export default function App() {
           <span>{topology ? `${topology.nodes.length} nodes` : '--'}</span>
           <span className="text-noc-border">|</span>
           <span>{topology ? `${topology.links.length} links` : '--'}</span>
-          {hasPanel && (
-            <>
-              <span className="text-noc-border">|</span>
-              <span className="text-noc-accent">
-                {selectedNode ? selectedNode.name : selectedLink ? 'link' : ''}
-              </span>
-            </>
-          )}
         </div>
       </header>
 
       {/* ├─── Main ───┤ */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Topology view */}
-        <div className="flex-1 relative">
-          <TopologyView
-            topology={topology}
-            onSelectNode={setSelectedNode}
-            onSelectLink={setSelectedLink}
-            onContextMenuLink={handleContextMenuLink}
-          />
+      <div className={`flex-1 flex flex-col ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'}`}>
+        {/* Desktop: horizontal row. Mobile: stacked vertically */}
+        <div className={isMobile ? '' : 'flex-1 flex overflow-hidden'}>
+          {/* Topology view */}
+          <div className={`relative min-w-0 ${isMobile ? 'h-[60vh] shrink-0' : 'flex-1'}`}>
+            <TopologyView
+              topology={topology}
+              onSelectNode={setSelectedNode}
+              onSelectLink={setSelectedLink}
+              onContextMenuLink={handleContextMenuLink}
+            />
 
-          {/* Link context menu */}
-          {contextMenu && (
-            <div
-              className="fixed z-40 bg-noc-bg tui-border py-1 min-w-44 animate-fade-in shadow-lg"
-              style={{ left: contextMenu.x, top: contextMenu.y }}
-              onClick={(e) => e.stopPropagation()}
-            >
-              <div className="px-2 py-1 text-2xs text-noc-text-dim tui-border-b">
-                {contextMenu.link.a.node} &lt;-&gt; {contextMenu.link.z.node}
-              </div>
-              {contextMenu.link.state === 'up' ? (
-                <>
+            {/* Link context menu */}
+            {contextMenu && (
+              <div
+                className="fixed z-40 bg-noc-bg tui-border py-1 min-w-44 animate-fade-in shadow-lg"
+                style={{ left: contextMenu.x, top: contextMenu.y }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="px-2 py-1 text-2xs text-noc-text-dim tui-border-b">
+                  {contextMenu.link.a.node} &lt;-&gt; {contextMenu.link.z.node}
+                </div>
+                {contextMenu.link.state === 'up' ? (
+                  <>
+                    <ContextMenuItem
+                      label="Link Down"
+                      color="text-noc-red"
+                      onClick={() => {
+                        handleFaultAction(contextMenu.link.id, 'down');
+                        closeContextMenu();
+                      }}
+                    />
+                    <ContextMenuItem
+                      label="Apply Netem..."
+                      color="text-noc-amber"
+                      onClick={() => {
+                        setNetemDialogLink(contextMenu.link);
+                        closeContextMenu();
+                      }}
+                    />
+                  </>
+                ) : contextMenu.link.state === 'down' ? (
                   <ContextMenuItem
-                    label="Link Down"
-                    color="text-noc-red"
+                    label="Link Up"
+                    color="text-noc-green"
                     onClick={() => {
-                      handleFaultAction(contextMenu.link.id, 'down');
+                      handleFaultAction(contextMenu.link.id, 'up');
                       closeContextMenu();
                     }}
                   />
-                  <ContextMenuItem
-                    label="Apply Netem..."
-                    color="text-noc-amber"
-                    onClick={() => {
-                      setNetemDialogLink(contextMenu.link);
-                      closeContextMenu();
-                    }}
-                  />
-                </>
-              ) : contextMenu.link.state === 'down' ? (
+                ) : (
+                  <>
+                    <ContextMenuItem
+                      label="Clear Netem"
+                      color="text-noc-green"
+                      onClick={() => {
+                        handleFaultAction(contextMenu.link.id, 'clear_netem');
+                        closeContextMenu();
+                      }}
+                    />
+                    <ContextMenuItem
+                      label="Update Netem..."
+                      color="text-noc-amber"
+                      onClick={() => {
+                        setNetemDialogLink(contextMenu.link);
+                        closeContextMenu();
+                      }}
+                    />
+                  </>
+                )}
                 <ContextMenuItem
-                  label="Link Up"
-                  color="text-noc-green"
+                  label="View Details"
+                  color="text-noc-text"
                   onClick={() => {
-                    handleFaultAction(contextMenu.link.id, 'up');
+                    setSelectedLink(contextMenu.link);
+                    setSelectedNode(null);
                     closeContextMenu();
                   }}
                 />
-              ) : (
-                <>
-                  <ContextMenuItem
-                    label="Clear Netem"
-                    color="text-noc-green"
-                    onClick={() => {
-                      handleFaultAction(contextMenu.link.id, 'clear_netem');
-                      closeContextMenu();
-                    }}
-                  />
-                  <ContextMenuItem
-                    label="Update Netem..."
-                    color="text-noc-amber"
-                    onClick={() => {
-                      setNetemDialogLink(contextMenu.link);
-                      closeContextMenu();
-                    }}
-                  />
-                </>
-              )}
-              <ContextMenuItem
-                label="View Details"
-                color="text-noc-text"
-                onClick={() => {
-                  setSelectedLink(contextMenu.link);
-                  setSelectedNode(null);
-                  closeContextMenu();
-                }}
-              />
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
 
-        {/* Side panel */}
-        {selectedNode && (
-          <NodePanel
+          {/* Right panel drag handle (desktop only) */}
+          {!isMobile && <div className="drag-handle-v" onMouseDown={onDetailDrag} />}
+
+          {/* Detail panel */}
+          <DetailPanel
+            project={selectedProject}
             node={selectedNode}
-            onClose={() => setSelectedNode(null)}
+            link={selectedLink}
             onOpenTerminal={handleOpenTerminal}
             onNodeAction={handleNodeAction}
-          />
-        )}
-        {selectedLink && !selectedNode && (
-          <LinkPanel
-            link={selectedLink}
-            onClose={() => setSelectedLink(null)}
             onFaultAction={handleFaultAction}
             onOpenNetemDialog={setNetemDialogLink}
+            style={isMobile ? undefined : { width: detailWidth }}
+            mobile={isMobile}
           />
+        </div>
+
+        {/* ├─── Terminal ───┤ */}
+        {selectedProject && (
+          <>
+            {!isMobile && !terminalCollapsed && (
+              <div className="drag-handle-h" onMouseDown={onTerminalDrag} />
+            )}
+            <TerminalPanel
+              project={selectedProject}
+              tabs={tabs}
+              activeTabId={activeTabId}
+              onSelectTab={setActiveTabId}
+              onCloseTab={handleCloseTab}
+              collapsed={isMobile ? false : terminalCollapsed}
+              onToggle={() => setTerminalCollapsed((v) => !v)}
+              style={isMobile ? { height: 300 } : { height: terminalHeight }}
+            />
+          </>
         )}
       </div>
-
-      {/* ├─── Terminal ───┤ */}
-      {selectedProject && (
-        <TerminalPanel
-          project={selectedProject}
-          tabs={tabs}
-          activeTabId={activeTabId}
-          onSelectTab={setActiveTabId}
-          onCloseTab={handleCloseTab}
-          collapsed={terminalCollapsed}
-          onToggle={() => setTerminalCollapsed((v) => !v)}
-        />
-      )}
 
       {/* Netem dialog */}
       {netemDialogLink && (

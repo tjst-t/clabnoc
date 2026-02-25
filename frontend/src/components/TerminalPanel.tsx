@@ -9,6 +9,7 @@ interface Props {
   onCloseTab: (id: string) => void;
   collapsed: boolean;
   onToggle: () => void;
+  style?: React.CSSProperties;
 }
 
 export function TerminalPanel({
@@ -19,12 +20,12 @@ export function TerminalPanel({
   onCloseTab,
   collapsed,
   onToggle,
+  style,
 }: Props) {
   return (
     <div
-      className={`bg-noc-bg tui-border-t flex flex-col transition-all duration-200 ${
-        collapsed ? 'h-7' : 'h-64'
-      }`}
+      className="bg-noc-bg tui-border-t flex flex-col"
+      style={collapsed ? { height: 28 } : style}
     >
       {/* Tab bar */}
       <div className="flex items-center h-7 shrink-0 tui-border-b">

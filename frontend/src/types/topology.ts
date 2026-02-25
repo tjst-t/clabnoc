@@ -10,6 +10,7 @@ export interface Topology {
   nodes: TopologyNode[];
   links: TopologyLink[];
   groups: Groups;
+  warnings?: string[];
 }
 
 export interface TopologyNode {
@@ -43,6 +44,7 @@ export interface GraphInfo {
   dc: string;
   rack: string;
   rack_unit: number;
+  rack_unit_size: number; // Height in U (default 1)
   role: string;
   icon: string;
   hidden: boolean;
@@ -75,6 +77,7 @@ export interface NetemParams {
 export interface Groups {
   dcs: string[];
   racks: Record<string, string[]>;
+  rack_units?: Record<string, number>; // rack name → total U count
 }
 
 export interface NodeActionRequest {
