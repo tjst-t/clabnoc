@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import type { TopologyNode, TopologyLink, ApiEvent, NetemParams } from './types/topology';
+import type { TopologyNode, TopologyLink, ApiEvent, NetemParams, SSHCredentials } from './types/topology';
 import { useProjects } from './hooks/useProjects';
 import { useTopology } from './hooks/useTopology';
 import { useWebSocket } from './hooks/useWebSocket';
@@ -11,6 +11,7 @@ import { TopologyView } from './components/TopologyView';
 import { DetailPanel } from './components/DetailPanel';
 import { TerminalPanel } from './components/TerminalPanel';
 import { FaultDialog } from './components/FaultDialog';
+import { SSHDialog } from './components/SSHDialog';
 import { destroyTerminalTab } from './lib/terminal-store';
 
 function useIsMobile(breakpoint = 768) {
@@ -33,6 +34,7 @@ export default function App() {
   const [selectedNode, setSelectedNode] = useState<TopologyNode | null>(null);
   const [selectedLink, setSelectedLink] = useState<TopologyLink | null>(null);
   const [netemDialogLink, setNetemDialogLink] = useState<TopologyLink | null>(null);
+  const [sshDialogNode, setSSHDialogNode] = useState<{ name: string; kind: string } | null>(null);
   const [terminalCollapsed, setTerminalCollapsed] = useState(false);
 
   // Sync selected project to URL
@@ -95,8 +97,23 @@ export default function App() {
   // Handlers
   const handleOpenTerminal = useCallback(
     (node: string, type: 'exec' | 'ssh') => {
-      addTab(node, type);
+      if (type === 'ssh') {
+        // Find node kind from topology for SSH dialog
+        const nodeData = topology?.nodes.find((n) => n.name === node);
+        setSSHDialogNode({ name: node, kind: nodeData?.kind ?? '' });
+      } else {
+        addTab(node, type);
+        setTerminalCollapsed(false);
+      }
+    },
+    [addTab, topology]
+  );
+
+  const handleSSHConnect = useCallback(
+    (nodeName: string, credentials: SSHCredentials) => {
+      addTab(nodeName, 'ssh', credentials);
       setTerminalCollapsed(false);
+      setSSHDialogNode(null);
     },
     [addTab]
   );
@@ -296,6 +313,16 @@ export default function App() {
           link={netemDialogLink}
           onApply={handleApplyNetem}
           onClose={() => setNetemDialogLink(null)}
+        />
+      )}
+
+      {/* SSH dialog */}
+      {sshDialogNode && selectedProject && (
+        <SSHDialog
+          node={sshDialogNode}
+          project={selectedProject}
+          onConnect={(creds) => handleSSHConnect(sshDialogNode.name, creds)}
+          onClose={() => setSSHDialogNode(null)}
         />
       )}
     </div>

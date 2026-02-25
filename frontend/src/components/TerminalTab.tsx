@@ -64,6 +64,10 @@ export function TerminalTab({ project, tab, active }: Props) {
 
     ws.onopen = () => {
       terminal.writeln(`\x1b[2m--- Connected (${tab.type}) ---\x1b[0m`);
+      // Send SSH credentials as first message
+      if (tab.type === 'ssh' && tab.sshCredentials) {
+        ws.send(JSON.stringify(tab.sshCredentials));
+      }
     };
 
     ws.onmessage = (e) => {

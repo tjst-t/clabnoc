@@ -5,6 +5,7 @@ import type {
   TopologyLink,
   FaultRequest,
   NodeActionRequest,
+  SSHCredentials,
 } from '../types/topology';
 
 const BASE_URL = '/api/v1';
@@ -67,19 +68,17 @@ export function createExecWebSocket(project: string, node: string, cmd = '/bin/b
   );
 }
 
-export function createSSHWebSocket(
-  project: string,
-  node: string,
-  user = 'admin',
-  port = '22',
-  password = ''
-): WebSocket {
+export async function getSSHCredentials(project: string, node: string): Promise<SSHCredentials> {
+  return fetchJSON<SSHCredentials>(
+    `${BASE_URL}/projects/${encodeURIComponent(project)}/nodes/${encodeURIComponent(node)}/ssh-credentials`
+  );
+}
+
+export function createSSHWebSocket(project: string, node: string): WebSocket {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
-  const params = new URLSearchParams({ user, port });
-  if (password) params.set('password', password);
   return new WebSocket(
-    `${proto}//${host}${BASE_URL}/projects/${encodeURIComponent(project)}/nodes/${encodeURIComponent(node)}/ssh?${params}`
+    `${proto}//${host}${BASE_URL}/projects/${encodeURIComponent(project)}/nodes/${encodeURIComponent(node)}/ssh`
   );
 }
 

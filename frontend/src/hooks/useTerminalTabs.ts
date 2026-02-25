@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback } from 'react';
-import type { TerminalTab } from '../types/topology';
+import type { TerminalTab, SSHCredentials } from '../types/topology';
 
 export function useTerminalTabs(project: string | null) {
   const tabsByProject = useRef<Map<string, TerminalTab[]>>(new Map());
@@ -24,10 +24,10 @@ export function useTerminalTabs(project: string | null) {
   }
 
   const addTab = useCallback(
-    (node: string, type: 'exec' | 'ssh') => {
+    (node: string, type: 'exec' | 'ssh', sshCredentials?: SSHCredentials) => {
       const id = `${node}-${type}-${Date.now()}`;
       const label = `${node} (${type})`;
-      const tab: TerminalTab = { id, node, type, label };
+      const tab: TerminalTab = { id, node, type, label, sshCredentials };
       setTabs((prev) => {
         const next = [...prev, tab];
         if (project) {

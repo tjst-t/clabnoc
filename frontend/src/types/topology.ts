@@ -95,9 +95,16 @@ export interface ApiEvent {
   data: Record<string, string>;
 }
 
+export interface SSHCredentials {
+  username: string;
+  password: string;
+  port: number;
+}
+
 export interface TerminalTab {
   id: string;
   node: string;
   type: 'exec' | 'ssh';
   label: string;
+  sshCredentials?: SSHCredentials;
 }
