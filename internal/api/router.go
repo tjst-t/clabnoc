@@ -39,6 +39,9 @@ func NewRouter(s *Server) http.Handler {
 		r.Get("/events", s.events)
 	})
 
+	// noVNC reverse proxy (outside /api/v1 so relative paths in noVNC work)
+	r.HandleFunc("/proxy/{name}/{node}/*", s.proxyHandler)
+
 	// Serve frontend SPA
 	distFS, err := fs.Sub(frontend.Assets, "dist")
 	if err != nil {
