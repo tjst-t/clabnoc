@@ -55,7 +55,7 @@ const BackgroundCables = memo(function BackgroundCables({
               fill="none"
               stroke="#3498db"
               strokeWidth={0.6}
-              opacity={0.18}
+              style={{ opacity: 'var(--noc-bg-cable-opacity)' }}
               strokeLinecap="round"
             />
             {/* Hit area for interaction */}

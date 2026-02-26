@@ -282,7 +282,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
   }, [layout, selectedDeviceName, selectedPortKey, visibleCables, rackMap]);
 
   return (
-    <div className="relative w-full h-full bg-[#0a0e17] overflow-hidden">
+    <div className="relative w-full h-full overflow-hidden" style={{ background: 'var(--noc-topo-bg)' }}>
       {/* Zoomable/pannable container */}
       <div
         ref={containerRef}
@@ -370,17 +370,17 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
       <div
         className="absolute bottom-5 left-1/2 -translate-x-1/2 z-20 font-mono text-[13px] px-6 py-3.5 max-w-[600px] transition-opacity duration-300 pointer-events-none"
         style={{
-          background: '#151c2c',
-          border: '1px solid #2a3a5c',
+          background: 'var(--noc-info-bg)',
+          border: '1px solid var(--noc-info-border)',
           borderRadius: '8px',
-          color: infoPanelData ? '#c8d6e5' : '#8899aa',
+          color: infoPanelData ? 'var(--noc-info-text)' : 'var(--noc-device-name)',
         }}
       >
         {infoPanelData ? (
           <>
-            <div className="font-semibold text-[15px]" style={{ color: '#7ec8e3' }}>
+            <div className="font-semibold text-[15px]" style={{ color: 'var(--noc-info-heading)' }}>
               {infoPanelData.name}
-              <span className="text-[11px] font-normal ml-2" style={{ color: '#5a7a9a' }}>
+              <span className="text-[11px] font-normal ml-2" style={{ color: 'var(--noc-info-muted)' }}>
                 {infoPanelData.rack && `${infoPanelData.rack} U${infoPanelData.unit}`}
                 {' '}
                 {infoPanelData.status === 'stopped' || infoPanelData.status === 'error'
@@ -390,13 +390,13 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                     : '● running'}
               </span>
               {infoPanelData.portHighlight && (
-                <span className="text-[11px] font-normal ml-1" style={{ color: '#a0b0c0' }}>
+                <span className="text-[11px] font-normal ml-1" style={{ color: 'var(--noc-info-conn)' }}>
                   / port: <b>{infoPanelData.portHighlight}</b>
                 </span>
               )}
             </div>
             {infoPanelData.connections.length > 0 && (
-              <div className="mt-1.5 leading-relaxed" style={{ color: '#a0b0c0' }}>
+              <div className="mt-1.5 leading-relaxed" style={{ color: 'var(--noc-info-conn)' }}>
                 {infoPanelData.connections.map((conn, i) => (
                   <div key={i}>
                     <span style={{ color: conn.color }}>■ {conn.myInterface}</span>
@@ -404,7 +404,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                     <b>{conn.otherDevice}</b>
                     {' : '}
                     <span style={{ color: conn.color }}>{conn.otherInterface}</span>
-                    <span className="ml-1" style={{ color: '#4a5a6a' }}>[{conn.state}]</span>
+                    <span className="ml-1" style={{ color: 'var(--noc-info-badge)' }}>[{conn.state}]</span>
                   </div>
                 ))}
               </div>
@@ -420,16 +420,16 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
         <div
           className="absolute top-3 left-1/2 -translate-x-1/2 z-20 font-mono text-[11px] px-4 py-2.5 max-w-[600px]"
           style={{
-            background: '#1c1a10',
-            border: '1px solid #5a4a18',
+            background: 'var(--noc-warn-bg)',
+            border: '1px solid var(--noc-warn-border)',
             borderRadius: '6px',
-            color: '#d4a017',
+            color: 'var(--noc-warn-text)',
           }}
         >
-          <div className="font-semibold text-[12px] mb-1" style={{ color: '#e6b422' }}>
+          <div className="font-semibold text-[12px] mb-1" style={{ color: 'var(--noc-warn-title)' }}>
             .clabnoc.yml: {topology.warnings.length} warning{topology.warnings.length > 1 ? 's' : ''}
           </div>
-          <div className="space-y-0.5" style={{ color: '#b89a30' }}>
+          <div className="space-y-0.5" style={{ color: 'var(--noc-warn-muted)' }}>
             {topology.warnings.map((w, i) => (
               <div key={i}>{w}</div>
             ))}
@@ -439,29 +439,29 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
 
       {/* Annotation error overlay */}
       {topology && annotationErrors.length > 0 && (
-        <div className="absolute inset-0 flex items-center justify-center z-30 bg-[#0a0e17]/90">
+        <div className="absolute inset-0 flex items-center justify-center z-30" style={{ background: 'var(--noc-overlay-bg)' }}>
           <div
             className="max-w-[640px] w-full mx-4 font-mono text-sm"
             style={{
-              background: '#151c2c',
-              border: '1px solid #5a1828',
+              background: 'var(--noc-info-bg)',
+              border: '1px solid var(--noc-error-border)',
               borderRadius: '4px',
             }}
           >
             <div
               className="px-4 py-3 text-[13px] font-semibold"
-              style={{ color: '#e74c3c', borderBottom: '1px solid #2a1828' }}
+              style={{ color: '#e74c3c', borderBottom: '1px solid var(--noc-error-divider)' }}
             >
               Topology cannot be displayed — missing node labels
             </div>
-            <div className="px-4 py-3 text-[12px] leading-relaxed" style={{ color: '#a0b0c0' }}>
-              <p className="mb-3" style={{ color: '#8899aa' }}>
+            <div className="px-4 py-3 text-[12px] leading-relaxed" style={{ color: 'var(--noc-info-conn)' }}>
+              <p className="mb-3" style={{ color: 'var(--noc-device-name)' }}>
                 All nodes require rack placement info. Use a{' '}
-                <code style={{ color: '#e67e22' }}>.clabnoc.yml</code> config file
+                <code style={{ color: 'var(--noc-error-highlight)' }}>.clabnoc.yml</code> config file
                 (recommended) or{' '}
-                <code style={{ color: '#e67e22' }}>graph-dc</code>,{' '}
-                <code style={{ color: '#e67e22' }}>graph-rack</code>, and{' '}
-                <code style={{ color: '#e67e22' }}>graph-rack-unit</code> labels in{' '}
+                <code style={{ color: 'var(--noc-error-highlight)' }}>graph-dc</code>,{' '}
+                <code style={{ color: 'var(--noc-error-highlight)' }}>graph-rack</code>, and{' '}
+                <code style={{ color: 'var(--noc-error-highlight)' }}>graph-rack-unit</code> labels in{' '}
                 the Containerlab topology file.
               </p>
               <div
@@ -470,15 +470,15 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
               >
                 <table className="w-full text-left" style={{ borderCollapse: 'collapse' }}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #2a3a5c' }}>
-                      <th className="pb-1.5 pr-4" style={{ color: '#5a7a9a' }}>Node</th>
-                      <th className="pb-1.5" style={{ color: '#5a7a9a' }}>Missing labels</th>
+                    <tr style={{ borderBottom: '1px solid var(--noc-table-border)' }}>
+                      <th className="pb-1.5 pr-4" style={{ color: 'var(--noc-info-muted)' }}>Node</th>
+                      <th className="pb-1.5" style={{ color: 'var(--noc-info-muted)' }}>Missing labels</th>
                     </tr>
                   </thead>
                   <tbody>
                     {annotationErrors.map((err) => (
-                      <tr key={err.node} style={{ borderBottom: '1px solid #1a2a3c' }}>
-                        <td className="py-1 pr-4" style={{ color: '#7ec8e3' }}>{err.node}</td>
+                      <tr key={err.node} style={{ borderBottom: '1px solid var(--noc-table-divider)' }}>
+                        <td className="py-1 pr-4" style={{ color: 'var(--noc-info-heading)' }}>{err.node}</td>
                         <td className="py-1">
                           {err.missing.map((label) => (
                             <code
@@ -486,7 +486,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                               className="mr-2 px-1"
                               style={{
                                 color: '#e74c3c',
-                                background: '#2a0c10',
+                                background: 'var(--noc-error-code-bg)',
                                 borderRadius: '2px',
                                 fontSize: '11px',
                               }}
@@ -500,12 +500,12 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                   </tbody>
                 </table>
               </div>
-              <p className="mt-3 text-[11px]" style={{ color: '#5a6a7a' }}>
-                Option 1: <code style={{ color: '#e67e22' }}>.clabnoc.yml</code> (recommended):
+              <p className="mt-3 text-[11px]" style={{ color: 'var(--noc-error-muted)' }}>
+                Option 1: <code style={{ color: 'var(--noc-error-highlight)' }}>.clabnoc.yml</code> (recommended):
               </p>
               <pre
                 className="mt-1 px-3 py-2 text-[11px] leading-relaxed overflow-x-auto"
-                style={{ background: '#0d1219', borderRadius: '3px', color: '#8899aa' }}
+                style={{ background: 'var(--noc-code-bg)', borderRadius: '3px', color: 'var(--noc-code-fg)' }}
               >
 {`racks:
   rack-a01:
@@ -517,12 +517,12 @@ nodes:
     unit: 42
     size: 1`}
               </pre>
-              <p className="mt-2 text-[11px]" style={{ color: '#5a6a7a' }}>
-                Option 2: Labels in <code style={{ color: '#e67e22' }}>.clab.yml</code>:
+              <p className="mt-2 text-[11px]" style={{ color: 'var(--noc-error-muted)' }}>
+                Option 2: Labels in <code style={{ color: 'var(--noc-error-highlight)' }}>.clab.yml</code>:
               </p>
               <pre
                 className="mt-1 px-3 py-2 text-[11px] leading-relaxed overflow-x-auto"
-                style={{ background: '#0d1219', borderRadius: '3px', color: '#8899aa' }}
+                style={{ background: 'var(--noc-code-bg)', borderRadius: '3px', color: 'var(--noc-code-fg)' }}
               >
 {`topology:
   nodes:
@@ -540,9 +540,9 @@ nodes:
       {/* Empty state */}
       {!topology && (
         <div className="absolute inset-0 flex items-center justify-center z-20">
-          <div className="text-center text-[#6b7b8d] text-xs font-mono">
+          <div className="text-center text-xs font-mono" style={{ color: 'var(--noc-empty-text)' }}>
             <div>No project selected</div>
-            <div className="text-[10px] mt-1" style={{ color: '#4a5a6a' }}>
+            <div className="text-[10px] mt-1" style={{ color: 'var(--noc-empty-muted)' }}>
               Select a project to view topology
             </div>
           </div>

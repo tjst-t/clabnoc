@@ -3,9 +3,230 @@
 @tailwind utilities;
 
 @layer base {
+  /* ══════════════════════════════════════════════
+     Dark Theme (default)
+     ══════════════════════════════════════════════ */
+  :root,
+  [data-theme='dark'] {
+    /* ── Base UI ── */
+    --noc-bg: #0a0e14;
+    --noc-surface: #111820;
+    --noc-panel: #0d1118;
+    --noc-border: #2a3a4e;
+    --noc-border-active: #3a5a7e;
+    --noc-text: #c5cdd8;
+    --noc-text-dim: #5a6a7e;
+    --noc-text-bright: #e8edf3;
+
+    /* ── Accent colors ── */
+    --noc-accent: #00d4aa;
+    --noc-accent-dim: #007a62;
+    --noc-amber: #ffb020;
+    --noc-amber-dim: #8a6010;
+    --noc-red: #ff3b5c;
+    --noc-red-dim: #7a1a2e;
+    --noc-cyan: #00c8ff;
+    --noc-cyan-dim: #006a8a;
+    --noc-green: #00e878;
+    --noc-green-dim: #005a30;
+
+    /* ── TUI buttons ── */
+    --noc-btn-green: #00e878;
+    --noc-btn-green-hover: #40ffa0;
+    --noc-btn-red: #ff3b5c;
+    --noc-btn-red-hover: #ff6b8a;
+    --noc-btn-amber: #ffb020;
+    --noc-btn-amber-hover: #ffd060;
+    --noc-btn-cyan: #00c8ff;
+    --noc-btn-cyan-hover: #60e0ff;
+    --noc-btn-default: #c5cdd8;
+    --noc-btn-default-hover: #e8edf3;
+    --noc-btn-dim: #5a6a7e;
+    --noc-btn-dim-hover: #8a9aae;
+    --noc-bracket: #5a6a7e;
+
+    /* ── Drag handles ── */
+    --noc-drag: #2a3a4e;
+    --noc-drag-hover: #00c8ff;
+
+    /* ── Scrollbar ── */
+    --noc-scroll-thumb: #1e2a38;
+    --noc-scroll-thumb-hover: #2a4060;
+
+    /* ── Select dropdown ── */
+    --noc-select-bg: #0a0e14;
+    --noc-select-text: #c5cdd8;
+
+    /* ── Topology SVG ── */
+    --noc-topo-bg: #0a0e17;
+    --noc-rack-fill: #0d1219;
+    --noc-rack-stroke: #1a2740;
+    --noc-dc-label: #4a6a8a;
+    --noc-u-marker: #1e2e3e;
+    --noc-grid-line: #111a28;
+    --noc-device-name: #8899aa;
+    --noc-device-name-selected: #00d4aa;
+    --noc-port-unconnected: #2a3a4a;
+    --noc-port-stroke: #0a0e17;
+    --noc-bg-cable-opacity: 0.18;
+
+    /* Device fills (role-based) */
+    --noc-device-network-bg: rgba(41, 128, 185, 0.08);
+    --noc-device-server-bg: rgba(39, 174, 96, 0.06);
+    --noc-device-bmc-bg: rgba(142, 68, 173, 0.08);
+    --noc-device-error-bg: rgba(231, 76, 60, 0.12);
+    --noc-device-warning-bg: rgba(243, 156, 18, 0.08);
+    --noc-device-selected-bg: rgba(0, 212, 170, 0.08);
+
+    /* ── Info panel ── */
+    --noc-info-bg: #151c2c;
+    --noc-info-border: #2a3a5c;
+    --noc-info-text: #c8d6e5;
+    --noc-info-heading: #7ec8e3;
+    --noc-info-muted: #5a7a9a;
+    --noc-info-conn: #a0b0c0;
+    --noc-info-badge: #4a5a6a;
+
+    /* ── Warning banner ── */
+    --noc-warn-bg: #1c1a10;
+    --noc-warn-border: #5a4a18;
+    --noc-warn-title: #e6b422;
+    --noc-warn-text: #d4a017;
+    --noc-warn-muted: #b89a30;
+
+    /* ── Error overlay ── */
+    --noc-error-border: #5a1828;
+    --noc-error-divider: #2a1828;
+    --noc-error-code-bg: #2a0c10;
+    --noc-error-highlight: #e67e22;
+    --noc-error-muted: #5a6a7a;
+    --noc-code-bg: #0d1219;
+    --noc-code-fg: #8899aa;
+    --noc-table-border: #2a3a5c;
+    --noc-table-divider: #1a2a3c;
+    --noc-empty-text: #6b7b8d;
+    --noc-empty-muted: #4a5a6a;
+    --noc-overlay-bg: rgba(10, 14, 23, 0.9);
+
+    /* ── Modal ── */
+    --noc-modal-overlay: rgba(0, 0, 0, 0.7);
+  }
+
+  /* ══════════════════════════════════════════════
+     Light Theme
+     ══════════════════════════════════════════════ */
+  [data-theme='light'] {
+    /* ── Base UI ── */
+    --noc-bg: #f0f2f6;
+    --noc-surface: #ffffff;
+    --noc-panel: #f6f8fb;
+    --noc-border: #cdd4de;
+    --noc-border-active: #8b9bb5;
+    --noc-text: #2d3748;
+    --noc-text-dim: #8b9bb5;
+    --noc-text-bright: #0d1117;
+
+    /* ── Accent colors — darker for light bg readability ── */
+    --noc-accent: #009070;
+    --noc-accent-dim: #d0f0e6;
+    --noc-amber: #b87000;
+    --noc-amber-dim: #fff3d0;
+    --noc-red: #d12040;
+    --noc-red-dim: #ffe0e6;
+    --noc-cyan: #0068b8;
+    --noc-cyan-dim: #d0eaff;
+    --noc-green: #007a50;
+    --noc-green-dim: #d0f0df;
+
+    /* ── TUI buttons ── */
+    --noc-btn-green: #007a50;
+    --noc-btn-green-hover: #009868;
+    --noc-btn-red: #d12040;
+    --noc-btn-red-hover: #e83050;
+    --noc-btn-amber: #b87000;
+    --noc-btn-amber-hover: #d08800;
+    --noc-btn-cyan: #0068b8;
+    --noc-btn-cyan-hover: #0080d8;
+    --noc-btn-default: #2d3748;
+    --noc-btn-default-hover: #0d1117;
+    --noc-btn-dim: #8b9bb5;
+    --noc-btn-dim-hover: #6b7b90;
+    --noc-bracket: #8b9bb5;
+
+    /* ── Drag handles ── */
+    --noc-drag: #cdd4de;
+    --noc-drag-hover: #0068b8;
+
+    /* ── Scrollbar ── */
+    --noc-scroll-thumb: #c0c8d4;
+    --noc-scroll-thumb-hover: #8b9bb5;
+
+    /* ── Select dropdown ── */
+    --noc-select-bg: #ffffff;
+    --noc-select-text: #2d3748;
+
+    /* ── Topology SVG ── */
+    --noc-topo-bg: #e6eaf0;
+    --noc-rack-fill: #edf0f5;
+    --noc-rack-stroke: #b8c2d0;
+    --noc-dc-label: #5a6a7e;
+    --noc-u-marker: #b0bcc8;
+    --noc-grid-line: #dce2ea;
+    --noc-device-name: #5a6a7e;
+    --noc-device-name-selected: #009070;
+    --noc-port-unconnected: #b8c2d0;
+    --noc-port-stroke: #edf0f5;
+    --noc-bg-cable-opacity: 0.30;
+
+    /* Device fills (role-based) — higher opacity for light bg */
+    --noc-device-network-bg: rgba(41, 128, 185, 0.13);
+    --noc-device-server-bg: rgba(39, 174, 96, 0.11);
+    --noc-device-bmc-bg: rgba(142, 68, 173, 0.13);
+    --noc-device-error-bg: rgba(231, 76, 60, 0.15);
+    --noc-device-warning-bg: rgba(243, 156, 18, 0.12);
+    --noc-device-selected-bg: rgba(0, 144, 112, 0.12);
+
+    /* ── Info panel ── */
+    --noc-info-bg: #ffffff;
+    --noc-info-border: #cdd4de;
+    --noc-info-text: #2d3748;
+    --noc-info-heading: #0068b8;
+    --noc-info-muted: #6b7b8d;
+    --noc-info-conn: #3d4f63;
+    --noc-info-badge: #8b9bb5;
+
+    /* ── Warning banner ── */
+    --noc-warn-bg: #fffbeb;
+    --noc-warn-border: #e6a817;
+    --noc-warn-title: #92610a;
+    --noc-warn-text: #856200;
+    --noc-warn-muted: #7a5800;
+
+    /* ── Error overlay ── */
+    --noc-error-border: #fca5a5;
+    --noc-error-divider: #fecdd3;
+    --noc-error-code-bg: #fff0f0;
+    --noc-error-highlight: #c74a10;
+    --noc-error-muted: #6b7280;
+    --noc-code-bg: #f2f5f8;
+    --noc-code-fg: #3d4f63;
+    --noc-table-border: #cdd4de;
+    --noc-table-divider: #e8ecf2;
+    --noc-empty-text: #6b7280;
+    --noc-empty-muted: #8b9bb5;
+    --noc-overlay-bg: rgba(240, 242, 246, 0.92);
+
+    /* ── Modal ── */
+    --noc-modal-overlay: rgba(0, 0, 0, 0.35);
+  }
+
+  /* ══════════════════════════════════════════════
+     Global Styles (using CSS variables)
+     ══════════════════════════════════════════════ */
+
   * {
     scrollbar-width: thin;
-    scrollbar-color: #1e2a38 transparent;
+    scrollbar-color: var(--noc-scroll-thumb) transparent;
   }
 
   ::-webkit-scrollbar {
@@ -18,11 +239,11 @@
   }
 
   ::-webkit-scrollbar-thumb {
-    background: #1e2a38;
+    background: var(--noc-scroll-thumb);
   }
 
   ::-webkit-scrollbar-thumb:hover {
-    background: #2a4060;
+    background: var(--noc-scroll-thumb-hover);
   }
 
   /* xterm.js container styling */
@@ -46,30 +267,30 @@
   }
 
   select option {
-    background: #0a0e14;
-    color: #c5cdd8;
+    background: var(--noc-select-bg);
+    color: var(--noc-select-text);
     font-family: 'JetBrains Mono', monospace;
   }
 
   /* TUI box-drawing border utility */
   .tui-border {
-    border: 1px solid #2a3a4e;
+    border: 1px solid var(--noc-border);
   }
 
   .tui-border-t {
-    border-top: 1px solid #2a3a4e;
+    border-top: 1px solid var(--noc-border);
   }
 
   .tui-border-b {
-    border-bottom: 1px solid #2a3a4e;
+    border-bottom: 1px solid var(--noc-border);
   }
 
   .tui-border-l {
-    border-left: 1px solid #2a3a4e;
+    border-left: 1px solid var(--noc-border);
   }
 
   .tui-border-r {
-    border-right: 1px solid #2a3a4e;
+    border-right: 1px solid var(--noc-border);
   }
 
   /* TUI button style */
@@ -86,12 +307,12 @@
 
   .tui-btn::before {
     content: '[';
-    color: #5a6a7e;
+    color: var(--noc-bracket);
   }
 
   .tui-btn::after {
     content: ']';
-    color: #5a6a7e;
+    color: var(--noc-bracket);
   }
 
   .tui-btn:hover::before,
@@ -100,71 +321,71 @@
   }
 
   .tui-btn-green {
-    color: #00e878;
+    color: var(--noc-btn-green);
   }
   .tui-btn-green:hover {
-    color: #40ffa0;
+    color: var(--noc-btn-green-hover);
   }
 
   .tui-btn-red {
-    color: #ff3b5c;
+    color: var(--noc-btn-red);
   }
   .tui-btn-red:hover {
-    color: #ff6b8a;
+    color: var(--noc-btn-red-hover);
   }
 
   .tui-btn-amber {
-    color: #ffb020;
+    color: var(--noc-btn-amber);
   }
   .tui-btn-amber:hover {
-    color: #ffd060;
+    color: var(--noc-btn-amber-hover);
   }
 
   .tui-btn-cyan {
-    color: #00c8ff;
+    color: var(--noc-btn-cyan);
   }
   .tui-btn-cyan:hover {
-    color: #60e0ff;
+    color: var(--noc-btn-cyan-hover);
   }
 
   .tui-btn-default {
-    color: #c5cdd8;
+    color: var(--noc-btn-default);
   }
   .tui-btn-default:hover {
-    color: #e8edf3;
+    color: var(--noc-btn-default-hover);
   }
 
   .tui-btn-dim {
-    color: #5a6a7e;
+    color: var(--noc-btn-dim);
   }
   .tui-btn-dim:hover {
-    color: #8a9aae;
+    color: var(--noc-btn-dim-hover);
   }
 
   /* Drag handles for resizable panels */
   .drag-handle-v {
     width: 4px;
     cursor: col-resize;
-    background: #2a3a4e;
+    background: var(--noc-drag);
     flex-shrink: 0;
     transition: background 0.15s;
   }
 
   .drag-handle-v:hover,
   .drag-handle-v.dragging {
-    background: #00c8ff;
+    background: var(--noc-drag-hover);
   }
 
   .drag-handle-h {
     height: 4px;
     cursor: row-resize;
-    background: #2a3a4e;
+    background: var(--noc-drag);
     flex-shrink: 0;
     transition: background 0.15s;
   }
 
   .drag-handle-h:hover,
   .drag-handle-h.dragging {
-    background: #00c8ff;
+    background: var(--noc-drag-hover);
   }
 }

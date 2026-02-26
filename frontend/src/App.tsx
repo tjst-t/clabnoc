@@ -13,6 +13,7 @@ import { TerminalPanel } from './components/TerminalPanel';
 import { FaultDialog } from './components/FaultDialog';
 import { SSHDialog } from './components/SSHDialog';
 import { destroyTerminalTab } from './lib/terminal-store';
+import { ThemeProvider, useTheme } from './lib/theme';
 
 function useIsMobile(breakpoint = 768) {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < breakpoint);
@@ -26,7 +27,16 @@ function useIsMobile(breakpoint = 768) {
 }
 
 export default function App() {
+  return (
+    <ThemeProvider>
+      <AppContent />
+    </ThemeProvider>
+  );
+}
+
+function AppContent() {
   const isMobile = useIsMobile();
+  const { theme, toggleTheme } = useTheme();
   const [selectedProject, setSelectedProject] = useState<string | null>(() => {
     const params = new URLSearchParams(window.location.search);
     return params.get('project');
@@ -192,6 +202,14 @@ export default function App() {
           <span>{topology ? `${topology.nodes.length} nodes` : '--'}</span>
           <span className="text-noc-border">|</span>
           <span>{topology ? `${topology.links.length} links` : '--'}</span>
+          <span className="text-noc-border">|</span>
+          <button
+            onClick={toggleTheme}
+            className="tui-btn tui-btn-dim"
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
+          >
+            {theme === 'dark' ? '\u2600' : '\u263D'}
+          </button>
         </div>
       </header>
 

@@ -19,8 +19,7 @@ export function Rack({ rack, uMarkers, children }: Props) {
         y={rack.y}
         width={rack.width}
         height={rack.height}
-        fill="#0d1219"
-        stroke="#1a2740"
+        style={{ fill: 'var(--noc-rack-fill)', stroke: 'var(--noc-rack-stroke)' }}
         strokeWidth={1.5}
         rx={3}
       />
@@ -29,7 +28,7 @@ export function Rack({ rack, uMarkers, children }: Props) {
       <text
         x={rack.x + rack.width / 2}
         y={rack.y + 20}
-        fill="#4a6a8a"
+        style={{ fill: 'var(--noc-dc-label)' }}
         fontSize={11}
         fontFamily="'JetBrains Mono', monospace"
         fontWeight={600}
@@ -45,7 +44,7 @@ export function Rack({ rack, uMarkers, children }: Props) {
           key={m.unit}
           x={rack.x + 5}
           y={m.y + U_HEIGHT - 4}
-          fill="#1e2e3e"
+          style={{ fill: 'var(--noc-u-marker)' }}
           fontSize={7}
           fontFamily="monospace"
         >
@@ -63,7 +62,7 @@ export function Rack({ rack, uMarkers, children }: Props) {
             y1={lineY}
             x2={rack.x + rack.width - 1}
             y2={lineY}
-            stroke="#111a28"
+            style={{ stroke: 'var(--noc-grid-line)' }}
             strokeWidth={0.5}
           />
         );

@@ -33,7 +33,7 @@ export function FaultDialog({ link, onApply, onClose }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/70" />
+      <div className="absolute inset-0" style={{ background: 'var(--noc-modal-overlay)' }} />
       <div
         className="relative bg-noc-bg tui-border w-96 animate-fade-in"
         onClick={(e) => e.stopPropagation()}

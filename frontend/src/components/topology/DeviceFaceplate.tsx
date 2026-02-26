@@ -22,10 +22,12 @@ function getDeviceColor(device: DeviceLayout): string {
 
 function getDeviceFill(device: DeviceLayout): string {
   const status = device.node.status;
-  if (status === 'stopped' || status === 'error') return 'rgba(231,76,60,0.12)';
-  if (status === 'warning') return 'rgba(243,156,18,0.08)';
-  const colors = ROLE_COLORS[device.role];
-  return colors ? colors.bg : 'rgba(39,174,96,0.06)';
+  if (status === 'stopped' || status === 'error') return 'var(--noc-device-error-bg)';
+  if (status === 'warning') return 'var(--noc-device-warning-bg)';
+  const role = device.role;
+  if (['spine', 'leaf', 'router', 'switch'].includes(role)) return 'var(--noc-device-network-bg)';
+  if (role === 'bmc') return 'var(--noc-device-bmc-bg)';
+  return 'var(--noc-device-server-bg)';
 }
 
 function getPortColor(
@@ -39,7 +41,7 @@ function getPortColor(
   // Faulted port color as fallback (always visible)
   const faultColor = faultedPortColors.get(port.key);
   if (faultColor) return faultColor;
-  return '#2a3a4a'; // unconnected
+  return 'var(--noc-port-unconnected)';
 }
 
 export function DeviceFaceplate({
@@ -53,8 +55,8 @@ export function DeviceFaceplate({
   onClick,
   onPortClick,
 }: Props) {
-  const borderColor = selected ? '#00d4aa' : getDeviceColor(device);
-  const fillColor = selected ? 'rgba(0,212,170,0.08)' : getDeviceFill(device);
+  const borderColor = selected ? 'var(--noc-device-name-selected)' : getDeviceColor(device);
+  const fillColor = selected ? 'var(--noc-device-selected-bg)' : getDeviceFill(device);
   const statusColor = STATUS_COLORS[device.node.status] ?? '#2ecc71';
   const isError = device.node.status === 'stopped' || device.node.status === 'error';
 
@@ -81,8 +83,7 @@ export function DeviceFaceplate({
         y={device.y}
         width={device.width}
         height={device.height}
-        fill={fillColor}
-        stroke={borderColor}
+        style={{ fill: fillColor, stroke: borderColor }}
         strokeWidth={selected ? 2 : 1.2}
         rx={2}
       />
@@ -114,7 +115,7 @@ export function DeviceFaceplate({
       <text
         x={device.x + 14}
         y={nameY}
-        fill={selected ? '#00d4aa' : '#8899aa'}
+        style={{ fill: selected ? 'var(--noc-device-name-selected)' : 'var(--noc-device-name)' }}
         fontSize={8}
         fontFamily="'JetBrains Mono', monospace"
       >
@@ -141,7 +142,7 @@ export function DeviceFaceplate({
               width={port.w}
               height={port.h}
               fill={portColor}
-              stroke="#0a0e17"
+              style={{ stroke: 'var(--noc-port-stroke)' }}
               strokeWidth={0.5}
               rx={1}
               opacity={0.9}

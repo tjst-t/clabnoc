@@ -8,14 +8,13 @@ interface Props {
 export function DataCenter({ dc, children }: Props) {
   return (
     <g>
-      {/* DC floor boundary — subtle dark rectangle */}
+      {/* DC floor boundary — subtle rectangle */}
       <rect
         x={dc.x}
         y={dc.y}
         width={dc.width}
         height={dc.height}
-        fill="#0d1219"
-        stroke="#1a2740"
+        style={{ fill: 'var(--noc-rack-fill)', stroke: 'var(--noc-rack-stroke)' }}
         strokeWidth={1}
         rx={3}
         opacity={0.5}
@@ -24,13 +23,12 @@ export function DataCenter({ dc, children }: Props) {
       <text
         x={dc.x + dc.width / 2}
         y={dc.y + 16}
-        fill="#4a6a8a"
+        style={{ fill: 'var(--noc-dc-label)' }}
         fontSize={11}
         fontFamily="'JetBrains Mono', monospace"
         fontWeight={600}
         textAnchor="middle"
         letterSpacing="2px"
-        style={{ textTransform: 'uppercase' }}
       >
         {dc.label}
       </text>
