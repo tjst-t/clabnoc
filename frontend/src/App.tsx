@@ -52,6 +52,15 @@ export default function App() {
   const { topology, refresh: refreshTopology } = useTopology(selectedProject);
   const { tabs, activeTabId, setActiveTabId, addTab, removeTab } = useTerminalTabs(selectedProject);
 
+  // Sync selectedLink with refreshed topology data
+  useEffect(() => {
+    if (!topology || !selectedLink) return;
+    const updated = topology.links.find((l) => l.id === selectedLink.id);
+    if (updated && (updated.state !== selectedLink.state || JSON.stringify(updated.netem) !== JSON.stringify(selectedLink.netem))) {
+      setSelectedLink(updated);
+    }
+  }, [topology, selectedLink]);
+
   const { size: detailWidth, handleMouseDown: onDetailDrag } = useResizable({
     direction: 'horizontal',
     initialSize: 288,

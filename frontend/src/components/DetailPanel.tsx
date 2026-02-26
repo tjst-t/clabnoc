@@ -193,13 +193,6 @@ function LinkContent({
             <EndpointInfo label="Z" node={link.z.node} iface={link.z.interface} mac={link.z.mac} />
           </TuiSection>
 
-          {(link.host_veth_a || link.host_veth_z) && (
-            <TuiSection title="Host Interfaces">
-              {link.host_veth_a && <div className="text-2xs text-noc-text-dim">A: {link.host_veth_a}</div>}
-              {link.host_veth_z && <div className="text-2xs text-noc-text-dim">Z: {link.host_veth_z}</div>}
-            </TuiSection>
-          )}
-
           {link.netem && (
             <TuiSection title="Active Netem">
               <div className="tui-border p-2 space-y-0.5">

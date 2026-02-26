@@ -56,8 +56,6 @@ export interface TopologyLink {
   z: LinkEndpoint;
   state: 'up' | 'down' | 'degraded';
   netem: NetemParams | null;
-  host_veth_a?: string;
-  host_veth_z?: string;
 }
 
 export interface LinkEndpoint {

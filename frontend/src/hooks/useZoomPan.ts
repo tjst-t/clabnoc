@@ -48,11 +48,9 @@ export function useZoomPan(options: UseZoomPanOptions = {}) {
     return () => el.removeEventListener('wheel', onWheel);
   }, [minScale, maxScale, wheelSensitivity]);
 
-  // Pointer drag for pan (background only)
+  // Pointer drag for pan
   const onPointerDown = useCallback(
     (e: React.PointerEvent) => {
-      // Only pan when clicking the background container itself
-      if (e.target !== e.currentTarget) return;
       if (e.button !== 0) return; // left button only
       dragging.current = true;
       dragStart.current = { x: e.clientX, y: e.clientY, tx: state.tx, ty: state.ty };

@@ -46,18 +46,6 @@ export function LinkPanel({ link, onClose, onFaultAction, onOpenNetemDialog }: P
             <EndpointInfo label="Z" node={link.z.node} iface={link.z.interface} mac={link.z.mac} />
           </TuiSection>
 
-          {/* ─── Host veths ─── */}
-          {(link.host_veth_a || link.host_veth_z) && (
-            <TuiSection title="Host Interfaces">
-              {link.host_veth_a && (
-                <div className="text-2xs text-noc-text-dim">A: {link.host_veth_a}</div>
-              )}
-              {link.host_veth_z && (
-                <div className="text-2xs text-noc-text-dim">Z: {link.host_veth_z}</div>
-              )}
-            </TuiSection>
-          )}
-
           {/* ─── Netem info ─── */}
           {link.netem && (
             <TuiSection title="Active Netem">
