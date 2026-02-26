@@ -1,94 +1,68 @@
 package network
 
 import (
+	"context"
 	"fmt"
 	"testing"
-
-	"github.com/vishvananda/netlink"
 )
 
-// mockLink implements netlink.Link for testing.
-type mockLink struct {
-	attrs netlink.LinkAttrs
+// execCall records a docker exec call for test verification.
+type execCall struct {
+	ContainerID string
+	Interface   string
+	Action      string
 }
 
-func (m *mockLink) Attrs() *netlink.LinkAttrs { return &m.attrs }
-func (m *mockLink) Type() string              { return "veth" }
-
-// mockVethOp implements VethOperator for testing.
-type mockVethOp struct {
-	links     map[string]netlink.Link
-	downCalls []string
-	upCalls   []string
-	addCalls  int
-	delCalls  int
-	downErr   error
-	upErr     error
-	addErr    error
-	delErr    error
+// mockFaultOperator implements FaultOperator for testing.
+type mockFaultOperator struct {
+	calls   []execCall
+	downErr error
+	upErr   error
+	addErr  error
+	delErr  error
 }
 
-func newMockVethOp() *mockVethOp {
-	return &mockVethOp{
-		links: make(map[string]netlink.Link),
-	}
-}
-
-func (m *mockVethOp) addLink(name string, index int) {
-	m.links[name] = &mockLink{attrs: netlink.LinkAttrs{Name: name, Index: index}}
-}
-
-func (m *mockVethOp) LinkByName(name string) (netlink.Link, error) {
-	link, ok := m.links[name]
-	if !ok {
-		return nil, fmt.Errorf("link %s not found", name)
-	}
-	return link, nil
-}
-
-func (m *mockVethOp) LinkSetUp(link netlink.Link) error {
-	m.upCalls = append(m.upCalls, link.Attrs().Name)
-	return m.upErr
-}
-
-func (m *mockVethOp) LinkSetDown(link netlink.Link) error {
-	m.downCalls = append(m.downCalls, link.Attrs().Name)
+func (m *mockFaultOperator) LinkSetDown(ctx context.Context, containerID, ifName string) error {
+	m.calls = append(m.calls, execCall{containerID, ifName, "down"})
 	return m.downErr
 }
 
-func (m *mockVethOp) LinkList() ([]netlink.Link, error) {
-	links := make([]netlink.Link, 0, len(m.links))
-	for _, l := range m.links {
-		links = append(links, l)
-	}
-	return links, nil
+func (m *mockFaultOperator) LinkSetUp(ctx context.Context, containerID, ifName string) error {
+	m.calls = append(m.calls, execCall{containerID, ifName, "up"})
+	return m.upErr
 }
 
-func (m *mockVethOp) QdiscAdd(qdisc netlink.Qdisc) error {
-	m.addCalls++
+func (m *mockFaultOperator) ApplyNetem(ctx context.Context, containerID, ifName string, params *NetemParams) error {
+	m.calls = append(m.calls, execCall{containerID, ifName, "netem"})
 	return m.addErr
 }
 
-func (m *mockVethOp) QdiscDel(qdisc netlink.Qdisc) error {
-	m.delCalls++
+func (m *mockFaultOperator) ClearNetem(ctx context.Context, containerID, ifName string) error {
+	m.calls = append(m.calls, execCall{containerID, ifName, "clear_netem"})
 	return m.delErr
 }
 
 func TestLinkDown(t *testing.T) {
-	op := newMockVethOp()
-	op.addLink("veth-a", 10)
-	op.addLink("veth-z", 11)
-
+	op := &mockFaultOperator{}
 	fm := NewFaultManager(op)
-	fm.SetVethMapping("link1", "veth-a", "veth-z")
+	fm.SetEndpointMapping("link1",
+		&EndpointTarget{ContainerID: "container-aaa", Interface: "eth1"},
+		&EndpointTarget{ContainerID: "container-zzz", Interface: "eth2"},
+	)
 
-	err := fm.LinkDown("link1")
+	err := fm.LinkDown(context.Background(), "link1")
 	if err != nil {
 		t.Fatalf("LinkDown failed: %v", err)
 	}
 
-	if len(op.downCalls) != 2 {
-		t.Errorf("expected 2 down calls, got %d", len(op.downCalls))
+	if len(op.calls) != 2 {
+		t.Fatalf("expected 2 down calls, got %d", len(op.calls))
+	}
+	if op.calls[0].ContainerID != "container-aaa" || op.calls[0].Interface != "eth1" || op.calls[0].Action != "down" {
+		t.Errorf("unexpected call[0]: %+v", op.calls[0])
+	}
+	if op.calls[1].ContainerID != "container-zzz" || op.calls[1].Interface != "eth2" || op.calls[1].Action != "down" {
+		t.Errorf("unexpected call[1]: %+v", op.calls[1])
 	}
 
 	state := fm.GetState("link1")
@@ -98,21 +72,27 @@ func TestLinkDown(t *testing.T) {
 }
 
 func TestLinkUp(t *testing.T) {
-	op := newMockVethOp()
-	op.addLink("veth-a", 10)
-	op.addLink("veth-z", 11)
-
+	op := &mockFaultOperator{}
 	fm := NewFaultManager(op)
-	fm.SetVethMapping("link1", "veth-a", "veth-z")
-	fm.LinkDown("link1") // Set to down first
+	fm.SetEndpointMapping("link1",
+		&EndpointTarget{ContainerID: "container-aaa", Interface: "eth1"},
+		&EndpointTarget{ContainerID: "container-zzz", Interface: "eth2"},
+	)
+	_ = fm.LinkDown(context.Background(), "link1")
+	op.calls = nil // reset
 
-	err := fm.LinkUp("link1")
+	err := fm.LinkUp(context.Background(), "link1")
 	if err != nil {
 		t.Fatalf("LinkUp failed: %v", err)
 	}
 
-	if len(op.upCalls) != 2 {
-		t.Errorf("expected 2 up calls, got %d", len(op.upCalls))
+	if len(op.calls) != 2 {
+		t.Fatalf("expected 2 up calls, got %d", len(op.calls))
+	}
+	for _, c := range op.calls {
+		if c.Action != "up" {
+			t.Errorf("expected action up, got %s", c.Action)
+		}
 	}
 
 	state := fm.GetState("link1")
@@ -122,22 +102,22 @@ func TestLinkUp(t *testing.T) {
 }
 
 func TestLinkDownNoMapping(t *testing.T) {
-	op := newMockVethOp()
+	op := &mockFaultOperator{}
 	fm := NewFaultManager(op)
 
-	err := fm.LinkDown("unknown")
+	err := fm.LinkDown(context.Background(), "unknown")
 	if err == nil {
 		t.Error("expected error for unknown link")
 	}
 }
 
 func TestApplyNetem(t *testing.T) {
-	op := newMockVethOp()
-	op.addLink("veth-a", 10)
-	op.addLink("veth-z", 11)
-
+	op := &mockFaultOperator{}
 	fm := NewFaultManager(op)
-	fm.SetVethMapping("link1", "veth-a", "veth-z")
+	fm.SetEndpointMapping("link1",
+		&EndpointTarget{ContainerID: "container-aaa", Interface: "eth1"},
+		&EndpointTarget{ContainerID: "container-zzz", Interface: "eth2"},
+	)
 
 	params := &NetemParams{
 		DelayMS:     100,
@@ -145,14 +125,18 @@ func TestApplyNetem(t *testing.T) {
 		LossPercent: 30,
 	}
 
-	err := fm.ApplyNetem("link1", params)
+	err := fm.ApplyNetem(context.Background(), "link1", params)
 	if err != nil {
 		t.Fatalf("ApplyNetem failed: %v", err)
 	}
 
-	// 2 del (clear first) + 2 add = total
-	if op.addCalls != 2 {
-		t.Errorf("expected 2 add calls, got %d", op.addCalls)
+	if len(op.calls) != 2 {
+		t.Fatalf("expected 2 netem calls, got %d", len(op.calls))
+	}
+	for _, c := range op.calls {
+		if c.Action != "netem" {
+			t.Errorf("expected action netem, got %s", c.Action)
+		}
 	}
 
 	state := fm.GetState("link1")
@@ -168,17 +152,22 @@ func TestApplyNetem(t *testing.T) {
 }
 
 func TestClearNetem(t *testing.T) {
-	op := newMockVethOp()
-	op.addLink("veth-a", 10)
-	op.addLink("veth-z", 11)
-
+	op := &mockFaultOperator{}
 	fm := NewFaultManager(op)
-	fm.SetVethMapping("link1", "veth-a", "veth-z")
-	fm.ApplyNetem("link1", &NetemParams{DelayMS: 100})
+	fm.SetEndpointMapping("link1",
+		&EndpointTarget{ContainerID: "container-aaa", Interface: "eth1"},
+		&EndpointTarget{ContainerID: "container-zzz", Interface: "eth2"},
+	)
+	_ = fm.ApplyNetem(context.Background(), "link1", &NetemParams{DelayMS: 100})
+	op.calls = nil
 
-	err := fm.ClearNetem("link1")
+	err := fm.ClearNetem(context.Background(), "link1")
 	if err != nil {
 		t.Fatalf("ClearNetem failed: %v", err)
+	}
+
+	if len(op.calls) != 2 {
+		t.Fatalf("expected 2 clear calls, got %d", len(op.calls))
 	}
 
 	state := fm.GetState("link1")
@@ -191,11 +180,25 @@ func TestClearNetem(t *testing.T) {
 }
 
 func TestGetStateDefault(t *testing.T) {
-	op := newMockVethOp()
+	op := &mockFaultOperator{}
 	fm := NewFaultManager(op)
 
 	state := fm.GetState("nonexistent")
 	if state.State != "up" {
 		t.Errorf("expected default state up, got %s", state.State)
+	}
+}
+
+func TestLinkDownError(t *testing.T) {
+	op := &mockFaultOperator{downErr: fmt.Errorf("exec failed")}
+	fm := NewFaultManager(op)
+	fm.SetEndpointMapping("link1",
+		&EndpointTarget{ContainerID: "container-aaa", Interface: "eth1"},
+		nil,
+	)
+
+	err := fm.LinkDown(context.Background(), "link1")
+	if err == nil {
+		t.Error("expected error")
 	}
 }
