@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"log/slog"
 	"net/http"
@@ -12,12 +13,6 @@ import (
 	"github.com/tjst-t/clabnoc/internal/topology"
 )
 
-type linkResponse struct {
-	topology.Link
-	HostVethA string `json:"host_veth_a,omitempty"`
-	HostVethZ string `json:"host_veth_z,omitempty"`
-}
-
 func (s *Server) listLinks(w http.ResponseWriter, r *http.Request) {
 	name := chi.URLParam(r, "name")
 
@@ -28,6 +23,10 @@ func (s *Server) listLinks(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type linkResponse struct {
+		topology.Link
+	}
+
 	links := make([]linkResponse, len(topo.Links))
 	for i, l := range topo.Links {
 		lr := linkResponse{Link: l}
@@ -35,8 +34,6 @@ func (s *Server) listLinks(w http.ResponseWriter, r *http.Request) {
 			state := s.FaultManager.GetState(l.ID)
 			lr.State = state.State
 			lr.Netem = state.Netem
-			lr.HostVethA = state.HostVethA
-			lr.HostVethZ = state.HostVethZ
 		}
 		links[i] = lr
 	}
@@ -56,6 +53,10 @@ func (s *Server) getLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	type linkResponse struct {
+		topology.Link
+	}
+
 	for _, l := range topo.Links {
 		if l.ID == linkID {
 			lr := linkResponse{Link: l}
@@ -63,8 +64,6 @@ func (s *Server) getLink(w http.ResponseWriter, r *http.Request) {
 				state := s.FaultManager.GetState(l.ID)
 				lr.State = state.State
 				lr.Netem = state.Netem
-				lr.HostVethA = state.HostVethA
-				lr.HostVethZ = state.HostVethZ
 			}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(lr)
@@ -76,7 +75,7 @@ func (s *Server) getLink(w http.ResponseWriter, r *http.Request) {
 }
 
 type faultRequest struct {
-	Action string          `json:"action"`
+	Action string               `json:"action"`
 	Netem  *network.NetemParams `json:"netem,omitempty"`
 }
 
@@ -102,31 +101,38 @@ func (s *Server) injectFault(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var found bool
+	var targetLink *topology.Link
 	for _, l := range topo.Links {
 		if l.ID == linkID {
-			found = true
+			targetLink = &l
 			break
 		}
 	}
-	if !found {
+	if targetLink == nil {
 		http.Error(w, "link not found", http.StatusNotFound)
 		return
 	}
 
+	// Auto-resolve endpoint mapping if not yet set
+	state := s.FaultManager.GetState(linkID)
+	if state.A == nil && state.Z == nil {
+		s.resolveEndpointMapping(r.Context(), name, linkID, targetLink)
+	}
+
+	ctx := r.Context()
 	switch req.Action {
 	case "down":
-		err = s.FaultManager.LinkDown(linkID)
+		err = s.FaultManager.LinkDown(ctx, linkID)
 	case "up":
-		err = s.FaultManager.LinkUp(linkID)
+		err = s.FaultManager.LinkUp(ctx, linkID)
 	case "netem":
 		if req.Netem == nil {
 			http.Error(w, "netem parameters required", http.StatusBadRequest)
 			return
 		}
-		err = s.FaultManager.ApplyNetem(linkID, req.Netem)
+		err = s.FaultManager.ApplyNetem(ctx, linkID, req.Netem)
 	case "clear_netem":
-		err = s.FaultManager.ClearNetem(linkID)
+		err = s.FaultManager.ClearNetem(ctx, linkID)
 	default:
 		http.Error(w, "invalid action", http.StatusBadRequest)
 		return
@@ -140,4 +146,43 @@ func (s *Server) injectFault(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
+}
+
+// resolveEndpointMapping finds the container IDs for a link's endpoints.
+func (s *Server) resolveEndpointMapping(ctx context.Context, projectName, linkID string, link *topology.Link) {
+	type endpointInfo struct {
+		side   string
+		node   string
+		ifName string
+	}
+
+	endpoints := []endpointInfo{
+		{side: "a", node: link.A.Node, ifName: link.A.Interface},
+		{side: "z", node: link.Z.Node, ifName: link.Z.Interface},
+	}
+
+	var a, z *network.EndpointTarget
+	for _, ep := range endpoints {
+		ctr, err := docker.FindContainerByNode(ctx, s.Docker, projectName, ep.node)
+		if err != nil {
+			slog.Warn("endpoint resolve: container not found", "node", ep.node, "error", err)
+			continue
+		}
+
+		target := &network.EndpointTarget{
+			ContainerID: ctr.ID,
+			Interface:   ep.ifName,
+		}
+
+		slog.Info("endpoint resolved", "link", linkID, "side", ep.side, "node", ep.node, "container", ctr.ID, "interface", ep.ifName)
+		if ep.side == "a" {
+			a = target
+		} else {
+			z = target
+		}
+	}
+
+	if a != nil || z != nil {
+		s.FaultManager.SetEndpointMapping(linkID, a, z)
+	}
 }

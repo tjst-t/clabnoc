@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log/slog"
@@ -40,7 +41,10 @@ func main() {
 		os.Exit(1)
 	}
 
-	faultManager := network.NewFaultManager(&network.RealVethOperator{})
+	execFn := func(ctx context.Context, containerID string, cmd []string) (string, error) {
+		return docker.ExecCommand(ctx, dockerClient, containerID, cmd)
+	}
+	faultManager := network.NewFaultManager(network.NewDockerFaultOperator(execFn))
 
 	server := &api.Server{
 		Docker:       dockerClient,

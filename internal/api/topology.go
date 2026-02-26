@@ -19,6 +19,15 @@ func (s *Server) getTopology(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Merge fault injection state into links
+	if s.FaultManager != nil {
+		for i, l := range topo.Links {
+			state := s.FaultManager.GetState(l.ID)
+			topo.Links[i].State = state.State
+			topo.Links[i].Netem = state.Netem
+		}
+	}
+
 	w.Header().Set("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(topo)
 }

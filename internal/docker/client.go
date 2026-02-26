@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"fmt"
 	"io"
 
 	"github.com/docker/docker/api/types"
@@ -72,6 +73,31 @@ func (r *RealClient) ContainerRestart(ctx context.Context, containerID string, o
 
 func (r *RealClient) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error) {
 	return r.cli.Events(ctx, options)
+}
+
+// ExecCommand runs a one-shot command inside a container and returns its output.
+func ExecCommand(ctx context.Context, cli DockerClient, containerID string, cmd []string) (string, error) {
+	exec, err := cli.ContainerExecCreate(ctx, containerID, container.ExecOptions{
+		Cmd:          cmd,
+		AttachStdout: true,
+		AttachStderr: true,
+		Tty:          true,
+	})
+	if err != nil {
+		return "", fmt.Errorf("exec create: %w", err)
+	}
+
+	resp, err := cli.ContainerExecAttach(ctx, exec.ID, container.ExecStartOptions{Tty: true})
+	if err != nil {
+		return "", fmt.Errorf("exec attach: %w", err)
+	}
+	defer resp.Close()
+
+	out, err := io.ReadAll(resp.Reader)
+	if err != nil {
+		return "", fmt.Errorf("exec read: %w", err)
+	}
+	return string(out), nil
 }
 
 // ClabContainerFilter returns a ListOptions filter for containerlab containers.

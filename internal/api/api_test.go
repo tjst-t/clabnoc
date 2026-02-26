@@ -14,7 +14,6 @@ import (
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/events"
-	"github.com/vishvananda/netlink"
 
 	"github.com/tjst-t/clabnoc/internal/docker"
 	"github.com/tjst-t/clabnoc/internal/network"
@@ -65,6 +64,16 @@ func (m *mockDockerClient) Events(ctx context.Context, options events.ListOption
 	return make(chan events.Message), make(chan error)
 }
 
+// mockFaultOp implements network.FaultOperator for API tests.
+type mockFaultOp struct{}
+
+func (m *mockFaultOp) LinkSetDown(ctx context.Context, containerID, ifName string) error { return nil }
+func (m *mockFaultOp) LinkSetUp(ctx context.Context, containerID, ifName string) error   { return nil }
+func (m *mockFaultOp) ApplyNetem(ctx context.Context, containerID, ifName string, params *network.NetemParams) error {
+	return nil
+}
+func (m *mockFaultOp) ClearNetem(ctx context.Context, containerID, ifName string) error { return nil }
+
 func setupTestServer(t *testing.T) (*Server, *mockDockerClient) {
 	t.Helper()
 
@@ -110,8 +119,7 @@ func setupTestServer(t *testing.T) (*Server, *mockDockerClient) {
 		},
 	}
 
-	mockOp := &mockVethOperator{}
-	fm := network.NewFaultManager(mockOp)
+	fm := network.NewFaultManager(&mockFaultOp{})
 
 	server := &Server{
 		Docker:       mock,
@@ -120,16 +128,6 @@ func setupTestServer(t *testing.T) (*Server, *mockDockerClient) {
 
 	return server, mock
 }
-
-// mockVethOperator is a no-op veth operator for testing.
-type mockVethOperator struct{}
-
-func (m *mockVethOperator) LinkByName(name string) (netlink.Link, error) { return nil, nil }
-func (m *mockVethOperator) LinkSetUp(link netlink.Link) error             { return nil }
-func (m *mockVethOperator) LinkSetDown(link netlink.Link) error           { return nil }
-func (m *mockVethOperator) LinkList() ([]netlink.Link, error)             { return nil, nil }
-func (m *mockVethOperator) QdiscAdd(qdisc netlink.Qdisc) error           { return nil }
-func (m *mockVethOperator) QdiscDel(qdisc netlink.Qdisc) error           { return nil }
 
 func TestListProjects(t *testing.T) {
 	server, _ := setupTestServer(t)
@@ -285,7 +283,51 @@ func TestListLinks(t *testing.T) {
 	}
 }
 
-func TestFaultInjectionNoMapping(t *testing.T) {
+func TestTopologyIncludesFaultState(t *testing.T) {
+	server, _ := setupTestServer(t)
+	router := NewRouter(server)
+
+	// Pre-set fault state via FaultManager
+	linkID := "spine1:e1-1__leaf1:e1-49"
+	server.FaultManager.SetEndpointMapping(linkID,
+		&network.EndpointTarget{ContainerID: "abc123", Interface: "e1-1"},
+		&network.EndpointTarget{ContainerID: "def456", Interface: "e1-49"},
+	)
+	if err := server.FaultManager.LinkDown(context.Background(), linkID); err != nil {
+		t.Fatalf("failed to set link down: %v", err)
+	}
+
+	// Fetch topology and verify link state is "down"
+	req := httptest.NewRequest("GET", "/api/v1/projects/dc-fabric/topology", nil)
+	rec := httptest.NewRecorder()
+	router.ServeHTTP(rec, req)
+
+	if rec.Code != http.StatusOK {
+		t.Fatalf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
+	}
+
+	var topo struct {
+		Links []struct {
+			ID    string `json:"id"`
+			State string `json:"state"`
+		} `json:"links"`
+	}
+	if err := json.NewDecoder(rec.Body).Decode(&topo); err != nil {
+		t.Fatalf("failed to decode response: %v", err)
+	}
+
+	for _, l := range topo.Links {
+		if l.ID == linkID {
+			if l.State != "down" {
+				t.Errorf("expected link %s state 'down', got '%s'", linkID, l.State)
+			}
+			return
+		}
+	}
+	t.Errorf("link %s not found in topology response", linkID)
+}
+
+func TestFaultInjectionAutoResolve(t *testing.T) {
 	server, _ := setupTestServer(t)
 	router := NewRouter(server)
 
@@ -294,8 +336,9 @@ func TestFaultInjectionNoMapping(t *testing.T) {
 	rec := httptest.NewRecorder()
 	router.ServeHTTP(rec, req)
 
-	// Should fail because no veth mapping exists
-	if rec.Code != http.StatusInternalServerError {
-		t.Errorf("expected status 500 (no veth mapping), got %d: %s", rec.Code, rec.Body.String())
+	// Auto-resolve now uses FindContainerByNode (no /proc access needed),
+	// and mockFaultOp is a no-op, so this should succeed.
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status 200, got %d: %s", rec.Code, rec.Body.String())
 	}
 }
