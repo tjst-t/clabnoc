@@ -41,11 +41,16 @@ lint:
 ## Dev server
 
 dev: build
+	@# Kill by PID file if available
 	@if [ -f $(DEV_PID_FILE) ] && kill -0 $$(cat $(DEV_PID_FILE)) 2>/dev/null; then \
 		echo "Stopping old dev server (PID $$(cat $(DEV_PID_FILE)))..."; \
 		kill $$(cat $(DEV_PID_FILE)) 2>/dev/null; \
 		sleep 1; \
 	fi
+	@# Fallback: kill any remaining clabnoc process on DEV_ADDR
+	@# Bracket trick prevents pkill from matching its own parent shell
+	@pkill -f '[b]in/clabnoc.*$(DEV_ADDR)' 2>/dev/null || true
+	@sleep 0.5
 	@nohup ./$(BINARY) -dev -addr $(DEV_ADDR) > /tmp/clabnoc.log 2>&1 & echo $$! > $(DEV_PID_FILE)
 	@sleep 1
 	@echo "clabnoc dev server started (PID $$(cat $(DEV_PID_FILE)), addr $(DEV_ADDR))"
@@ -58,9 +63,11 @@ dev-stop:
 		rm -f $(DEV_PID_FILE); \
 		echo "Stopped."; \
 	else \
-		echo "No dev server running."; \
+		echo "No dev server running (by PID file)."; \
 		rm -f $(DEV_PID_FILE); \
 	fi
+	@# Fallback: kill any remaining clabnoc process on DEV_ADDR
+	@pkill -f '[b]in/clabnoc.*$(DEV_ADDR)' 2>/dev/null && echo "Killed remaining clabnoc process." || true
 
 ## Docker
 

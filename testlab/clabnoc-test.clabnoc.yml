@@ -4,7 +4,7 @@
 racks:
   rack1:
     dc: dc1
-    units: 15
+    units: 10
   rack2:
     dc: dc1
     units: 10       # taller rack to test variable rack height
@@ -12,7 +12,7 @@ racks:
 nodes:
   spine:
     rack: rack1
-    unit: 15
+    unit: 10
     size: 1
     role: spine
   leaf:
@@ -27,6 +27,6 @@ nodes:
     role: server
   client:
     rack: rack1
-    unit: 15
+    unit: 1
     size: 1
     role: server
