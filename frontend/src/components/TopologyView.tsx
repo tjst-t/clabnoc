@@ -83,13 +83,34 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
     }
   }, [layout, fitContent]);
 
-  // Compute which cables to show + which devices are related
-  const { visibleCables, relatedDevices, highlightedPorts, cableColorMap } = useMemo(() => {
+  // Faulted cable IDs + port colors — always computed (no selection needed)
+  const { faultedCableIds, faultedPortColors, faultedDevices } = useMemo(() => {
+    const ids = new Set<string>();
+    const portColors = new Map<string, string>();
+    const devs = new Set<string>();
+    if (!layout) return { faultedCableIds: ids, faultedPortColors: portColors, faultedDevices: devs };
+
+    for (const cable of layout.cables) {
+      if (cable.link.state === 'down' || cable.link.state === 'degraded') {
+        ids.add(cable.link.id);
+        const color = getCableColor(cable.link);
+        portColors.set(cable.aPort.key, color);
+        portColors.set(cable.zPort.key, color);
+        devs.add(cable.aPort.node.name);
+        devs.add(cable.zPort.node.name);
+      }
+    }
+    return { faultedCableIds: ids, faultedPortColors: portColors, faultedDevices: devs };
+  }, [layout]);
+
+  // Highlighted cables + related devices — selection-driven
+  const { highlightedCableIds, relatedDevices, highlightedPorts, cableColorMap, visibleCables } = useMemo(() => {
     const empty = {
-      visibleCables: [] as CableLayout[],
+      highlightedCableIds: new Set<string>(),
       relatedDevices: new Set<string>(),
       highlightedPorts: new Set<string>(),
       cableColorMap: new Map<string, string>(),
+      visibleCables: [] as CableLayout[],
     };
     if (!layout || (!selectedDeviceName && !selectedLinkId)) return empty;
 
@@ -109,6 +130,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
       return empty;
     }
 
+    const ids = new Set<string>();
     const devs = new Set<string>();
     const ports = new Set<string>();
     const colorMap = new Map<string, string>();
@@ -116,6 +138,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
     if (selectedDeviceName) devs.add(selectedDeviceName);
 
     for (const cable of related) {
+      ids.add(cable.link.id);
       devs.add(cable.aPort.node.name);
       devs.add(cable.zPort.node.name);
       ports.add(cable.aPort.key);
@@ -126,10 +149,11 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
     }
 
     return {
-      visibleCables: related,
+      highlightedCableIds: ids,
       relatedDevices: devs,
       highlightedPorts: ports,
       cableColorMap: colorMap,
+      visibleCables: related,
     };
   }, [layout, selectedDeviceName, selectedPortKey, selectedLinkId]);
 
@@ -263,11 +287,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
       <div
         ref={containerRef}
         className="w-full h-full relative z-10 cursor-grab active:cursor-grabbing"
-        onPointerDown={(e) => {
-          if (e.target === e.currentTarget) {
-            onPointerDown(e);
-          }
-        }}
+        onPointerDown={onPointerDown}
         onPointerMove={onPointerMove}
         onPointerUp={onPointerUp}
         onClick={(e) => {
@@ -310,7 +330,9 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
 
             {/* Cables layer (behind devices on click) — drawn BEFORE devices */}
             <CableOverlay
-              cables={visibleCables}
+              allCables={layout.cables}
+              highlightedCableIds={highlightedCableIds}
+              faultedCableIds={faultedCableIds}
               rackMap={rackMap}
               totalWidth={layout.totalWidth}
               totalHeight={layout.totalHeight}
@@ -320,19 +342,26 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
             />
 
             {/* Devices + embedded ports */}
-            {Array.from(layout.devices.values()).map((device) => (
-              <DeviceFaceplate
-                key={device.node.name}
-                device={device}
-                ports={portsByDevice.get(device.node.name) ?? []}
-                selected={device.node.name === selectedDeviceName}
-                dimmed={hasSelection && !relatedDevices.has(device.node.name)}
-                highlightedPorts={highlightedPorts}
-                cableColorMap={cableColorMap}
-                onClick={() => handleDeviceClick(device.node)}
-                onPortClick={handlePortClick}
-              />
-            ))}
+            {Array.from(layout.devices.values()).map((device) => {
+              const name = device.node.name;
+              const isDimmed = hasSelection
+                && !relatedDevices.has(name)
+                && !faultedDevices.has(name);
+              return (
+                <DeviceFaceplate
+                  key={name}
+                  device={device}
+                  ports={portsByDevice.get(name) ?? []}
+                  selected={name === selectedDeviceName}
+                  dimmed={isDimmed}
+                  highlightedPorts={highlightedPorts}
+                  cableColorMap={cableColorMap}
+                  faultedPortColors={faultedPortColors}
+                  onClick={() => handleDeviceClick(device.node)}
+                  onPortClick={handlePortClick}
+                />
+              );
+            })}
           </svg>
         )}
       </div>
@@ -382,7 +411,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
             )}
           </>
         ) : (
-          'Click a device or port to view connections'
+          'Click a device or cable to highlight'
         )}
       </div>
 

@@ -7,6 +7,7 @@ interface Props {
   dimmed: boolean;
   highlightedPorts: Set<string>;
   cableColorMap: Map<string, string>;
+  faultedPortColors: Map<string, string>;
   onClick: () => void;
   onPortClick: (port: PortLayout) => void;
 }
@@ -27,9 +28,17 @@ function getDeviceFill(device: DeviceLayout): string {
   return colors ? colors.bg : 'rgba(39,174,96,0.06)';
 }
 
-function getPortColor(port: PortLayout, cableColorMap: Map<string, string>): string {
+function getPortColor(
+  port: PortLayout,
+  cableColorMap: Map<string, string>,
+  faultedPortColors: Map<string, string>,
+): string {
+  // Selection highlight takes priority
   const cableColor = cableColorMap.get(port.key);
   if (cableColor) return cableColor;
+  // Faulted port color as fallback (always visible)
+  const faultColor = faultedPortColors.get(port.key);
+  if (faultColor) return faultColor;
   return '#2a3a4a'; // unconnected
 }
 
@@ -40,6 +49,7 @@ export function DeviceFaceplate({
   dimmed,
   highlightedPorts,
   cableColorMap,
+  faultedPortColors,
   onClick,
   onPortClick,
 }: Props) {
@@ -59,6 +69,7 @@ export function DeviceFaceplate({
         opacity: dimmed ? 0.15 : 1,
         transition: 'opacity 0.2s ease',
       }}
+      onPointerDown={(e) => e.stopPropagation()}
       onClick={(e) => {
         e.stopPropagation();
         onClick();
@@ -113,7 +124,7 @@ export function DeviceFaceplate({
       {/* Ports inside the faceplate */}
       {ports.map((port) => {
         const highlighted = highlightedPorts.has(port.key);
-        const portColor = getPortColor(port, cableColorMap);
+        const portColor = getPortColor(port, cableColorMap, faultedPortColors);
 
         return (
           <g
