@@ -380,26 +380,3 @@ export function buildCablePath(
   const laneY = CABLE_LANE_BASE_Y - cableIndex * 3;
   return `M${x1},${y1} L${x1},${laneY} L${x2},${laneY} L${x2},${y2}`;
 }
-
-/**
- * Build a bezier-curve cable path for background (always-visible) cables.
- * Uses a gentle curve from port to port — no stagger needed, cables naturally
- * overlap to form a "cable bundle" look at low opacity.
- */
-export function buildDirectCablePath(cable: CableLayout): string {
-  const x1 = cable.aPort.cx;
-  const y1 = cable.aPort.cy;
-  const x2 = cable.zPort.cx;
-  const y2 = cable.zPort.cy;
-
-  if (cable.intraRack) {
-    // Intra-rack: curve out to the right side
-    const bulge = 30 + Math.abs(y2 - y1) * 0.15;
-    const cpx = Math.max(x1, x2) + bulge;
-    return `M${x1},${y1} C${cpx},${y1} ${cpx},${y2} ${x2},${y2}`;
-  }
-
-  // Inter-rack: curve up through the cable lane area
-  const midY = CABLE_LANE_BASE_Y;
-  return `M${x1},${y1} C${x1},${midY} ${x2},${midY} ${x2},${y2}`;
-}

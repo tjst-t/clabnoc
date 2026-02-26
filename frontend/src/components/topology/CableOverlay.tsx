@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import type { CableLayout, RackLayout } from '../../lib/rack-layout';
 import type { TopologyLink } from '../../types/topology';
-import { buildCablePath, buildDirectCablePath, LINK_STATE_COLORS } from '../../lib/rack-layout';
+import { buildCablePath, LINK_STATE_COLORS } from '../../lib/rack-layout';
 
 interface Props {
   allCables: CableLayout[];
@@ -29,22 +29,24 @@ const BackgroundCables = memo(function BackgroundCables({
   cables,
   highlightedIds,
   faultedIds,
+  rackMap,
   onSelectLink,
   onContextMenuLink,
 }: {
   cables: CableLayout[];
   highlightedIds: Set<string>;
   faultedIds: Set<string>;
+  rackMap: Map<string, RackLayout>;
   onSelectLink: (link: TopologyLink) => void;
   onContextMenuLink: (link: TopologyLink, x: number, y: number) => void;
 }) {
   return (
     <g>
-      {cables.map((cable) => {
+      {cables.map((cable, idx) => {
         // Skip cables that will be drawn in foreground tiers
         if (highlightedIds.has(cable.link.id) || faultedIds.has(cable.link.id)) return null;
 
-        const d = buildDirectCablePath(cable);
+        const d = buildCablePath(cable, idx, rackMap);
         return (
           <g key={`bg-${cable.link.id}`}>
             {/* Background cable line */}
@@ -172,11 +174,12 @@ export function CableOverlay({
 
   return (
     <g>
-      {/* Tier 1: Background — always visible, bezier curves */}
+      {/* Tier 1: Background — always visible, orthogonal lines */}
       <BackgroundCables
         cables={allCables}
         highlightedIds={highlightedCableIds}
         faultedIds={faultedCableIds}
+        rackMap={rackMap}
         onSelectLink={onSelectLink}
         onContextMenuLink={onContextMenuLink}
       />
