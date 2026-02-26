@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
+import { FitAddon } from '@xterm/addon-fit';
 import type { TerminalTab as TerminalTabType } from '../types/topology';
 import { createExecWebSocket, createSSHWebSocket } from '../lib/api';
 import { terminalInstances } from '../lib/terminal-store';
@@ -53,7 +54,10 @@ export function TerminalTab({ project, tab, active }: Props) {
       },
     });
 
+    const fitAddon = new FitAddon();
+    terminal.loadAddon(fitAddon);
     terminal.open(containerRef.current);
+    fitAddon.fit();
 
     const ws =
       tab.type === 'exec'
@@ -92,24 +96,35 @@ export function TerminalTab({ project, tab, active }: Props) {
       }
     });
 
-    terminalInstances.set(tab.id, { terminal, ws });
+    terminalInstances.set(tab.id, { terminal, ws, fitAddon });
 
     return () => {
       // Don't destroy on unmount - preserve for project switching
     };
   }, [project, tab]);
 
-  // Handle resize when becoming active
+  // Fit terminal to container when active, and observe container resizes
   useEffect(() => {
-    if (!active) return;
+    if (!active || !containerRef.current) return;
     const instance = terminalInstances.get(tab.id);
-    if (instance) {
-      // Small delay to let container resize
-      const timer = setTimeout(() => {
-        instance.terminal.focus();
-      }, 50);
-      return () => clearTimeout(timer);
-    }
+    if (!instance) return;
+
+    // Fit after a short delay to let the container lay out
+    const timer = setTimeout(() => {
+      instance.fitAddon.fit();
+      instance.terminal.focus();
+    }, 50);
+
+    // Re-fit whenever the container resizes (e.g. panel drag)
+    const ro = new ResizeObserver(() => {
+      instance.fitAddon.fit();
+    });
+    ro.observe(containerRef.current);
+
+    return () => {
+      clearTimeout(timer);
+      ro.disconnect();
+    };
   }, [active, tab.id]);
 
   return <div ref={containerRef} className="w-full h-full" />;
