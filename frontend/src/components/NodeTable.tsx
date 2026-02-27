@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import type { Topology, TopologyNode, ContainerStats } from '../types/topology';
+import { formatBytes } from '../lib/format';
 
 interface Props {
   topology: Topology | null;
@@ -24,7 +25,7 @@ const COLUMNS: { key: SortKey; label: string; width: string }[] = [
   { key: 'memory', label: 'MEM', width: 'w-20' },
 ];
 
-function getField(node: TopologyNode, key: SortKey, stats?: ContainerStats): string | number {
+function getField(node: TopologyNode, key: SortKey, stats?: ContainerStats): string | number | null {
   switch (key) {
     case 'name': return node.name;
     case 'kind': return node.kind;
@@ -33,16 +34,9 @@ function getField(node: TopologyNode, key: SortKey, stats?: ContainerStats): str
     case 'dc': return node.graph.dc || '';
     case 'rack': return node.graph.rack || '';
     case 'unit': return node.graph.rack_unit;
-    case 'cpu': return stats?.cpu_percent ?? -1;
-    case 'memory': return stats?.memory_bytes ?? -1;
+    case 'cpu': return stats?.cpu_percent ?? null;
+    case 'memory': return stats?.memory_bytes ?? null;
   }
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }
 
 export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuery, containerStats }: Props) {
@@ -73,12 +67,15 @@ export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuer
       );
     }
 
-    // Sort
+    // Sort — nulls (no stats) always sort last regardless of direction
     nodes.sort((a, b) => {
       const aStats = containerStats?.get(a.name);
       const bStats = containerStats?.get(b.name);
       const aVal = getField(a, sortKey, aStats);
       const bVal = getField(b, sortKey, bStats);
+      if (aVal === null && bVal === null) return 0;
+      if (aVal === null) return 1;
+      if (bVal === null) return -1;
       const cmp = typeof aVal === 'number' && typeof bVal === 'number'
         ? aVal - bVal
         : String(aVal).localeCompare(String(bVal));
@@ -182,11 +179,11 @@ export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuer
                 </div>
                 {/* CPU */}
                 <div className="w-16 text-2xs px-1 shrink-0" style={{ color: stats ? 'var(--noc-cyan)' : 'var(--noc-text-dim)' }}>
-                  {stats ? `${stats.cpu_percent.toFixed(1)}%` : '--'}
+                  {stats ? `${stats.cpu_percent.toFixed(1)}%` : node.status !== 'running' ? '-' : '...'}
                 </div>
                 {/* Memory */}
                 <div className="w-20 text-2xs px-1 truncate shrink-0" style={{ color: stats ? 'var(--noc-cyan)' : 'var(--noc-text-dim)' }}>
-                  {stats ? formatBytes(stats.memory_bytes) : '--'}
+                  {stats ? formatBytes(stats.memory_bytes) : node.status !== 'running' ? '-' : '...'}
                 </div>
               </div>
             );

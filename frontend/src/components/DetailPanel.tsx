@@ -1,4 +1,5 @@
 import type { TopologyNode, TopologyLink, AccessMethod, ContainerStats } from '../types/topology';
+import { formatBytes } from '../lib/format';
 
 interface Props {
   project: string | null;
@@ -334,9 +335,3 @@ function NetemRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
-}

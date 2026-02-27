@@ -4,12 +4,15 @@ import (
 	"context"
 	"encoding/json"
 	"log/slog"
+	"math"
 	"net/http"
+	"sync"
 	"time"
 
+	"github.com/docker/docker/api/types/container"
+	"github.com/docker/docker/api/types/filters"
 	"github.com/go-chi/chi/v5"
 	"github.com/gorilla/websocket"
-	"github.com/tjst-t/clabnoc/internal/docker"
 )
 
 // ContainerStats holds CPU and memory stats for a single container.
@@ -36,13 +39,15 @@ func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
 	defer ws.Close()
 
 	ctx, cancel := context.WithCancel(r.Context())
-	defer cancel()
+	var once sync.Once
+	safeCancel := func() { once.Do(func() { cancel() }) }
+	defer safeCancel()
 
 	// Monitor for client disconnect
 	go func() {
 		for {
 			if _, _, err := ws.ReadMessage(); err != nil {
-				cancel()
+				safeCancel()
 				return
 			}
 		}
@@ -64,34 +69,36 @@ func (s *Server) stats(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// listProjectContainers returns running containers for a specific clab project
+// using a targeted Docker filter instead of discovering all projects.
+func (s *Server) listProjectContainers(ctx context.Context, projectName string) ([]container.Summary, error) {
+	f := filters.NewArgs()
+	f.Add("label", "containerlab="+projectName)
+	f.Add("status", "running")
+	return s.Docker.ContainerList(ctx, container.ListOptions{Filters: f})
+}
+
 func (s *Server) sendStats(ctx context.Context, ws *websocket.Conn, projectName string) {
-	projects, err := docker.DiscoverProjects(ctx, s.Docker)
+	containers, err := s.listProjectContainers(ctx, projectName)
 	if err != nil {
-		slog.Error("failed to discover projects for stats", "error", err)
+		slog.Error("failed to list containers for stats", "project", projectName, "error", err)
 		return
 	}
 
-	var containers []struct {
+	type nodeContainer struct {
 		name string
 		id   string
 	}
-	for _, p := range projects {
-		if p.Name != projectName {
-			continue
-		}
-		for _, c := range p.Containers {
-			nodeName := c.Labels["clab-node-name"]
-			if nodeName != "" && c.State == "running" {
-				containers = append(containers, struct {
-					name string
-					id   string
-				}{name: nodeName, id: c.ID})
-			}
+	var targets []nodeContainer
+	for _, c := range containers {
+		nodeName := c.Labels["clab-node-name"]
+		if nodeName != "" {
+			targets = append(targets, nodeContainer{name: nodeName, id: c.ID})
 		}
 	}
 
-	stats := make(map[string]ContainerStats, len(containers))
-	for _, c := range containers {
+	stats := make(map[string]ContainerStats, len(targets))
+	for _, c := range targets {
 		resp, err := s.Docker.ContainerStatsOneShot(ctx, c.id)
 		if err != nil {
 			slog.Debug("failed to get stats for container", "container", c.name, "error", err)
@@ -151,16 +158,18 @@ type memoryStats struct {
 }
 
 // calculateCPUPercent calculates CPU usage percentage from Docker stats.
+// Returns a value clamped to [0, numCPUs*100].
 func calculateCPUPercent(v dockerStatsJSON) float64 {
 	cpuDelta := float64(v.CPUStats.CPUUsage.TotalUsage) - float64(v.PreCPUStats.CPUUsage.TotalUsage)
 	systemDelta := float64(v.CPUStats.SystemCPUUsage) - float64(v.PreCPUStats.SystemCPUUsage)
 
 	if systemDelta > 0.0 && cpuDelta >= 0.0 {
 		numCPUs := float64(v.CPUStats.OnlineCPUs)
-		if numCPUs == 0 {
+		if numCPUs <= 0 {
 			numCPUs = 1
 		}
-		return (cpuDelta / systemDelta) * numCPUs * 100.0
+		pct := (cpuDelta / systemDelta) * numCPUs * 100.0
+		return math.Min(pct, numCPUs*100.0)
 	}
 	return 0.0
 }
