@@ -147,6 +147,45 @@ function ForegroundCable({
           onContextMenuLink(cable.link, e.clientX, e.clientY);
         }}
       />
+      {/* Interface labels — shown when selected */}
+      {isSelected && (
+        <>
+          <InterfaceLabel cx={cable.aPort.cx} cy={cable.aPort.cy} label={cable.aPort.iface} color={color} />
+          <InterfaceLabel cx={cable.zPort.cx} cy={cable.zPort.cy} label={cable.zPort.iface} color={color} />
+        </>
+      )}
+    </g>
+  );
+}
+
+/** Interface name label shown near a port when its cable is selected */
+function InterfaceLabel({ cx, cy, label, color }: { cx: number; cy: number; label: string; color: string }) {
+  // Estimate text width for background rect (approx 4.2px per char at fontSize 7)
+  const textW = label.length * 4.2 + 4;
+  const textH = 10;
+  return (
+    <g>
+      <rect
+        x={cx - textW / 2}
+        y={cy - 14 - textH / 2}
+        width={textW}
+        height={textH}
+        rx={2}
+        fill="rgba(0,0,0,0.7)"
+      />
+      <text
+        x={cx}
+        y={cy - 14}
+        textAnchor="middle"
+        dominantBaseline="central"
+        fontSize={7}
+        fill={color}
+        fontFamily="'JetBrains Mono', monospace"
+        fontWeight={600}
+        style={{ pointerEvents: 'none' }}
+      >
+        {label}
+      </text>
     </g>
   );
 }
