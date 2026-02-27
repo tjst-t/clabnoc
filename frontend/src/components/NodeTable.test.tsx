@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { NodeTable } from './NodeTable';
-import type { Topology, TopologyNode } from '../types/topology';
+import type { Topology, TopologyNode, ContainerStats } from '../types/topology';
 
 function makeNode(overrides: Partial<TopologyNode> & { name: string }): TopologyNode {
   return {
@@ -93,5 +93,16 @@ describe('NodeTable', () => {
   it('shows filtered count in footer', () => {
     render(<NodeTable topology={topology} onSelectNode={() => {}} selectedNodeName={null} searchQuery="spine" />);
     expect(screen.getByText(/1 node.*filtered from 3/)).toBeTruthy();
+  });
+
+  it('displays container stats when provided', () => {
+    const stats = new Map<string, ContainerStats>([
+      ['spine1', { cpu_percent: 5.23, memory_bytes: 104857600, memory_limit: 8589934592 }],
+    ]);
+    render(
+      <NodeTable topology={topology} onSelectNode={() => {}} selectedNodeName={null} searchQuery="" containerStats={stats} />
+    );
+    expect(screen.getByText('5.2%')).toBeTruthy();
+    expect(screen.getByText('100.0 MiB')).toBeTruthy();
   });
 });

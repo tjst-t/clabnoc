@@ -5,6 +5,7 @@ import { useTopology } from './hooks/useTopology';
 import { useWebSocket } from './hooks/useWebSocket';
 import { useTerminalTabs } from './hooks/useTerminalTabs';
 import { useResizable } from './hooks/useResizable';
+import { useContainerStats } from './hooks/useContainerStats';
 import { nodeAction, injectFault } from './lib/api';
 import { ProjectSelector } from './components/ProjectSelector';
 import { TopologyView } from './components/TopologyView';
@@ -64,6 +65,7 @@ function AppContent() {
   const { projects, loading: projectsLoading } = useProjects();
   const { topology, refresh: refreshTopology } = useTopology(selectedProject);
   const { tabs, activeTabId, setActiveTabId, addTab, removeTab } = useTerminalTabs(selectedProject);
+  const containerStats = useContainerStats(selectedProject);
 
   // Sync selectedLink with refreshed topology data
   useEffect(() => {
@@ -268,6 +270,7 @@ function AppContent() {
                 }}
                 selectedNodeName={selectedNode?.name ?? null}
                 searchQuery={searchQuery}
+                containerStats={containerStats}
               />
             ) : (
               <TopologyView
@@ -364,6 +367,7 @@ function AppContent() {
             onOpenNetemDialog={setNetemDialogLink}
             style={isMobile ? undefined : { width: detailWidth }}
             mobile={isMobile}
+            containerStats={containerStats}
           />
         </div>
 

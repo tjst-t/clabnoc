@@ -1,14 +1,15 @@
 import { useState, useMemo } from 'react';
-import type { Topology, TopologyNode } from '../types/topology';
+import type { Topology, TopologyNode, ContainerStats } from '../types/topology';
 
 interface Props {
   topology: Topology | null;
   onSelectNode: (node: TopologyNode) => void;
   selectedNodeName: string | null;
   searchQuery: string;
+  containerStats?: Map<string, ContainerStats>;
 }
 
-type SortKey = 'name' | 'kind' | 'status' | 'mgmt_ipv4' | 'dc' | 'rack' | 'unit';
+type SortKey = 'name' | 'kind' | 'status' | 'mgmt_ipv4' | 'dc' | 'rack' | 'unit' | 'cpu' | 'memory';
 type SortDir = 'asc' | 'desc';
 
 const COLUMNS: { key: SortKey; label: string; width: string }[] = [
@@ -19,9 +20,11 @@ const COLUMNS: { key: SortKey; label: string; width: string }[] = [
   { key: 'dc', label: 'DC', width: 'w-16' },
   { key: 'rack', label: 'RACK', width: 'flex-1' },
   { key: 'unit', label: 'U', width: 'w-10' },
+  { key: 'cpu', label: 'CPU', width: 'w-16' },
+  { key: 'memory', label: 'MEM', width: 'w-20' },
 ];
 
-function getField(node: TopologyNode, key: SortKey): string | number {
+function getField(node: TopologyNode, key: SortKey, stats?: ContainerStats): string | number {
   switch (key) {
     case 'name': return node.name;
     case 'kind': return node.kind;
@@ -30,10 +33,19 @@ function getField(node: TopologyNode, key: SortKey): string | number {
     case 'dc': return node.graph.dc || '';
     case 'rack': return node.graph.rack || '';
     case 'unit': return node.graph.rack_unit;
+    case 'cpu': return stats?.cpu_percent ?? -1;
+    case 'memory': return stats?.memory_bytes ?? -1;
   }
 }
 
-export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuery }: Props) {
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
+}
+
+export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuery, containerStats }: Props) {
   const [sortKey, setSortKey] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<SortDir>('asc');
 
@@ -63,8 +75,10 @@ export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuer
 
     // Sort
     nodes.sort((a, b) => {
-      const aVal = getField(a, sortKey);
-      const bVal = getField(b, sortKey);
+      const aStats = containerStats?.get(a.name);
+      const bStats = containerStats?.get(b.name);
+      const aVal = getField(a, sortKey, aStats);
+      const bVal = getField(b, sortKey, bStats);
       const cmp = typeof aVal === 'number' && typeof bVal === 'number'
         ? aVal - bVal
         : String(aVal).localeCompare(String(bVal));
@@ -72,7 +86,7 @@ export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuer
     });
 
     return nodes;
-  }, [topology, searchQuery, sortKey, sortDir]);
+  }, [topology, searchQuery, sortKey, sortDir, containerStats]);
 
   if (!topology) {
     return (
@@ -118,6 +132,7 @@ export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuer
         ) : (
           rows.map((node) => {
             const isSelected = node.name === selectedNodeName;
+            const stats = containerStats?.get(node.name);
             return (
               <div
                 key={node.name}
@@ -164,6 +179,14 @@ export function NodeTable({ topology, onSelectNode, selectedNodeName, searchQuer
                 {/* Unit */}
                 <div className="w-10 text-2xs px-1 shrink-0" style={{ color: 'var(--noc-text-dim)' }}>
                   {node.graph.rack_unit || '--'}
+                </div>
+                {/* CPU */}
+                <div className="w-16 text-2xs px-1 shrink-0" style={{ color: stats ? 'var(--noc-cyan)' : 'var(--noc-text-dim)' }}>
+                  {stats ? `${stats.cpu_percent.toFixed(1)}%` : '--'}
+                </div>
+                {/* Memory */}
+                <div className="w-20 text-2xs px-1 truncate shrink-0" style={{ color: stats ? 'var(--noc-cyan)' : 'var(--noc-text-dim)' }}>
+                  {stats ? formatBytes(stats.memory_bytes) : '--'}
                 </div>
               </div>
             );

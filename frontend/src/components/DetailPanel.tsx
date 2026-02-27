@@ -1,4 +1,4 @@
-import type { TopologyNode, TopologyLink, AccessMethod } from '../types/topology';
+import type { TopologyNode, TopologyLink, AccessMethod, ContainerStats } from '../types/topology';
 
 interface Props {
   project: string | null;
@@ -10,6 +10,7 @@ interface Props {
   onOpenNetemDialog: (link: TopologyLink) => void;
   style?: React.CSSProperties;
   mobile?: boolean;
+  containerStats?: Map<string, ContainerStats>;
 }
 
 export function DetailPanel({
@@ -22,6 +23,7 @@ export function DetailPanel({
   onOpenNetemDialog,
   style,
   mobile,
+  containerStats,
 }: Props) {
   return (
     <div
@@ -38,6 +40,7 @@ export function DetailPanel({
           node={node}
           onOpenTerminal={onOpenTerminal}
           onNodeAction={onNodeAction}
+          stats={containerStats?.get(node.name)}
         />
       ) : link ? (
         <LinkContent
@@ -71,11 +74,13 @@ function NodeContent({
   node,
   onOpenTerminal,
   onNodeAction,
+  stats,
 }: {
   project: string | null;
   node: TopologyNode;
   onOpenTerminal: (node: string, type: 'exec' | 'ssh') => void;
   onNodeAction: (node: string, action: 'start' | 'stop' | 'restart') => void;
+  stats?: ContainerStats;
 }) {
   return (
     <>
@@ -107,6 +112,26 @@ function NodeContent({
               <DetailRow label="Role" value={node.graph.role} valueClass="text-noc-cyan" />
             )}
           </TuiSection>
+
+          {stats && (
+            <TuiSection title="Resources">
+              <DetailRow label="CPU" value={`${stats.cpu_percent.toFixed(1)}%`} valueClass="text-noc-cyan" />
+              <DetailRow
+                label="Memory"
+                value={`${formatBytes(stats.memory_bytes)} / ${formatBytes(stats.memory_limit)}`}
+                valueClass="text-noc-cyan"
+              />
+              <div className="mt-1 h-1.5 w-full rounded-sm overflow-hidden" style={{ background: 'var(--noc-border)' }}>
+                <div
+                  className="h-full transition-all duration-500"
+                  style={{
+                    width: `${stats.memory_limit > 0 ? Math.min((stats.memory_bytes / stats.memory_limit) * 100, 100) : 0}%`,
+                    background: 'var(--noc-cyan)',
+                  }}
+                />
+              </div>
+            </TuiSection>
+          )}
 
           {node.port_bindings && node.port_bindings.length > 0 && (
             <TuiSection title="Ports">
@@ -307,4 +332,11 @@ function NetemRow({ label, value }: { label: string; value: string }) {
       <span className="text-noc-text-bright">{value}</span>
     </div>
   );
+}
+
+function formatBytes(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${units[i]}`;
 }

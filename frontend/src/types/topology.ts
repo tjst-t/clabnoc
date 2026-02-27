@@ -99,6 +99,12 @@ export interface SSHCredentials {
   port: number;
 }
 
+export interface ContainerStats {
+  cpu_percent: number;
+  memory_bytes: number;
+  memory_limit: number;
+}
+
 export interface TerminalTab {
   id: string;
   node: string;

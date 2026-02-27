@@ -82,6 +82,14 @@ export function createSSHWebSocket(project: string, node: string): WebSocket {
   );
 }
 
+export function createStatsWebSocket(project: string): WebSocket {
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  return new WebSocket(
+    `${proto}//${host}${BASE_URL}/projects/${encodeURIComponent(project)}/stats`
+  );
+}
+
 export function createEventsWebSocket(project?: string): WebSocket {
   const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
   const host = window.location.host;
