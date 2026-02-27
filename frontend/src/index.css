@@ -116,108 +116,108 @@
      Light Theme
      ══════════════════════════════════════════════ */
   [data-theme='light'] {
-    /* ── Base UI ── */
-    --noc-bg: #f0f2f6;
-    --noc-surface: #ffffff;
-    --noc-panel: #f6f8fb;
-    --noc-border: #cdd4de;
-    --noc-border-active: #8b9bb5;
-    --noc-text: #2d3748;
-    --noc-text-dim: #8b9bb5;
-    --noc-text-bright: #0d1117;
+    /* ── Base UI — warm white with strong borders ── */
+    --noc-bg: #e8ecf2;
+    --noc-surface: #f5f7fa;
+    --noc-panel: #eef1f5;
+    --noc-border: #9aa5b4;
+    --noc-border-active: #5a6a80;
+    --noc-text: #1a2332;
+    --noc-text-dim: #5a6878;
+    --noc-text-bright: #0a0f18;
 
-    /* ── Accent colors — darker for light bg readability ── */
-    --noc-accent: #009070;
-    --noc-accent-dim: #d0f0e6;
-    --noc-amber: #b87000;
-    --noc-amber-dim: #fff3d0;
-    --noc-red: #d12040;
-    --noc-red-dim: #ffe0e6;
-    --noc-cyan: #0068b8;
-    --noc-cyan-dim: #d0eaff;
-    --noc-green: #007a50;
-    --noc-green-dim: #d0f0df;
+    /* ── Accent colors — strong, saturated for light bg ── */
+    --noc-accent: #007858;
+    --noc-accent-dim: #b0e8d6;
+    --noc-amber: #a06000;
+    --noc-amber-dim: #ffe8b8;
+    --noc-red: #c01838;
+    --noc-red-dim: #ffd0d8;
+    --noc-cyan: #005aa0;
+    --noc-cyan-dim: #b8daf8;
+    --noc-green: #006840;
+    --noc-green-dim: #b8e8d0;
 
-    /* ── TUI buttons ── */
-    --noc-btn-green: #007a50;
-    --noc-btn-green-hover: #009868;
-    --noc-btn-red: #d12040;
-    --noc-btn-red-hover: #e83050;
-    --noc-btn-amber: #b87000;
-    --noc-btn-amber-hover: #d08800;
-    --noc-btn-cyan: #0068b8;
-    --noc-btn-cyan-hover: #0080d8;
-    --noc-btn-default: #2d3748;
-    --noc-btn-default-hover: #0d1117;
-    --noc-btn-dim: #8b9bb5;
-    --noc-btn-dim-hover: #6b7b90;
-    --noc-bracket: #8b9bb5;
+    /* ── TUI buttons — bold, readable ── */
+    --noc-btn-green: #006840;
+    --noc-btn-green-hover: #008858;
+    --noc-btn-red: #c01838;
+    --noc-btn-red-hover: #d82848;
+    --noc-btn-amber: #a06000;
+    --noc-btn-amber-hover: #c07800;
+    --noc-btn-cyan: #005aa0;
+    --noc-btn-cyan-hover: #0070c0;
+    --noc-btn-default: #1a2332;
+    --noc-btn-default-hover: #000810;
+    --noc-btn-dim: #5a6878;
+    --noc-btn-dim-hover: #3a4858;
+    --noc-bracket: #6a7888;
 
     /* ── Drag handles ── */
-    --noc-drag: #cdd4de;
-    --noc-drag-hover: #0068b8;
+    --noc-drag: #9aa5b4;
+    --noc-drag-hover: #005aa0;
 
     /* ── Scrollbar ── */
-    --noc-scroll-thumb: #c0c8d4;
-    --noc-scroll-thumb-hover: #8b9bb5;
+    --noc-scroll-thumb: #9aa5b4;
+    --noc-scroll-thumb-hover: #6a7888;
 
     /* ── Select dropdown ── */
-    --noc-select-bg: #ffffff;
-    --noc-select-text: #2d3748;
+    --noc-select-bg: #f5f7fa;
+    --noc-select-text: #1a2332;
 
-    /* ── Topology SVG ── */
-    --noc-topo-bg: #e6eaf0;
-    --noc-rack-fill: #edf0f5;
-    --noc-rack-stroke: #b8c2d0;
-    --noc-dc-label: #5a6a7e;
-    --noc-u-marker: #b0bcc8;
-    --noc-grid-line: #dce2ea;
-    --noc-device-name: #5a6a7e;
-    --noc-device-name-selected: #009070;
-    --noc-port-unconnected: #b8c2d0;
-    --noc-port-stroke: #edf0f5;
-    --noc-bg-cable-opacity: 0.30;
+    /* ── Topology SVG — visible structure ── */
+    --noc-topo-bg: #d8dde6;
+    --noc-rack-fill: #e4e8f0;
+    --noc-rack-stroke: #8090a8;
+    --noc-dc-label: #3a4a5e;
+    --noc-u-marker: #8898a8;
+    --noc-grid-line: #c8d0dc;
+    --noc-device-name: #3a4a5e;
+    --noc-device-name-selected: #007858;
+    --noc-port-unconnected: #98a4b4;
+    --noc-port-stroke: #d8dde6;
+    --noc-bg-cable-opacity: 0.40;
 
-    /* Device fills (role-based) — higher opacity for light bg */
-    --noc-device-network-bg: rgba(41, 128, 185, 0.13);
-    --noc-device-server-bg: rgba(39, 174, 96, 0.11);
-    --noc-device-bmc-bg: rgba(142, 68, 173, 0.13);
-    --noc-device-error-bg: rgba(231, 76, 60, 0.15);
-    --noc-device-warning-bg: rgba(243, 156, 18, 0.12);
-    --noc-device-selected-bg: rgba(0, 144, 112, 0.12);
+    /* Device fills (role-based) — strong fills for visibility */
+    --noc-device-network-bg: rgba(41, 128, 185, 0.22);
+    --noc-device-server-bg: rgba(39, 174, 96, 0.18);
+    --noc-device-bmc-bg: rgba(142, 68, 173, 0.20);
+    --noc-device-error-bg: rgba(231, 76, 60, 0.22);
+    --noc-device-warning-bg: rgba(243, 156, 18, 0.18);
+    --noc-device-selected-bg: rgba(0, 120, 88, 0.18);
 
-    /* ── Info panel ── */
-    --noc-info-bg: #ffffff;
-    --noc-info-border: #cdd4de;
-    --noc-info-text: #2d3748;
-    --noc-info-heading: #0068b8;
-    --noc-info-muted: #6b7b8d;
-    --noc-info-conn: #3d4f63;
-    --noc-info-badge: #8b9bb5;
+    /* ── Info panel — solid contrast ── */
+    --noc-info-bg: #f0f3f8;
+    --noc-info-border: #8090a8;
+    --noc-info-text: #1a2332;
+    --noc-info-heading: #005aa0;
+    --noc-info-muted: #4a5a6e;
+    --noc-info-conn: #2a3a4e;
+    --noc-info-badge: #6a7888;
 
     /* ── Warning banner ── */
-    --noc-warn-bg: #fffbeb;
-    --noc-warn-border: #e6a817;
-    --noc-warn-title: #92610a;
-    --noc-warn-text: #856200;
-    --noc-warn-muted: #7a5800;
+    --noc-warn-bg: #fff4d0;
+    --noc-warn-border: #c08800;
+    --noc-warn-title: #7a4e00;
+    --noc-warn-text: #6a4200;
+    --noc-warn-muted: #5a3800;
 
     /* ── Error overlay ── */
-    --noc-error-border: #fca5a5;
-    --noc-error-divider: #fecdd3;
-    --noc-error-code-bg: #fff0f0;
-    --noc-error-highlight: #c74a10;
-    --noc-error-muted: #6b7280;
-    --noc-code-bg: #f2f5f8;
-    --noc-code-fg: #3d4f63;
-    --noc-table-border: #cdd4de;
-    --noc-table-divider: #e8ecf2;
-    --noc-empty-text: #6b7280;
-    --noc-empty-muted: #8b9bb5;
-    --noc-overlay-bg: rgba(240, 242, 246, 0.92);
+    --noc-error-border: #e07080;
+    --noc-error-divider: #f0b0b8;
+    --noc-error-code-bg: #ffe8e8;
+    --noc-error-highlight: #b04008;
+    --noc-error-muted: #4a5a68;
+    --noc-code-bg: #e4e8f0;
+    --noc-code-fg: #2a3a4e;
+    --noc-table-border: #8090a8;
+    --noc-table-divider: #c0c8d4;
+    --noc-empty-text: #4a5a68;
+    --noc-empty-muted: #6a7888;
+    --noc-overlay-bg: rgba(216, 221, 230, 0.94);
 
     /* ── Modal ── */
-    --noc-modal-overlay: rgba(0, 0, 0, 0.35);
+    --noc-modal-overlay: rgba(0, 0, 0, 0.45);
   }
 
   /* ══════════════════════════════════════════════
