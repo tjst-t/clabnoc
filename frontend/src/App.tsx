@@ -8,6 +8,7 @@ import { useResizable } from './hooks/useResizable';
 import { nodeAction, injectFault } from './lib/api';
 import { ProjectSelector } from './components/ProjectSelector';
 import { TopologyView } from './components/TopologyView';
+import { NodeTable } from './components/NodeTable';
 import { DetailPanel } from './components/DetailPanel';
 import { TerminalPanel } from './components/TerminalPanel';
 import { FaultDialog } from './components/FaultDialog';
@@ -47,6 +48,7 @@ function AppContent() {
   const [sshDialogNode, setSSHDialogNode] = useState<{ name: string; kind: string } | null>(null);
   const [terminalCollapsed, setTerminalCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState<'topology' | 'table'>('topology');
 
   // Sync selected project to URL
   useEffect(() => {
@@ -220,6 +222,21 @@ function AppContent() {
                 )}
               </div>
               <span className="text-noc-border">|</span>
+              <button
+                onClick={() => setViewMode('topology')}
+                className={`tui-btn ${viewMode === 'topology' ? 'tui-btn-cyan' : 'tui-btn-dim'}`}
+                title="Topology view"
+              >
+                topo
+              </button>
+              <button
+                onClick={() => setViewMode('table')}
+                className={`tui-btn ${viewMode === 'table' ? 'tui-btn-cyan' : 'tui-btn-dim'}`}
+                title="Table view"
+              >
+                table
+              </button>
+              <span className="text-noc-border">|</span>
             </>
           )}
           <span>{topology ? `${topology.nodes.length} nodes` : '--'}</span>
@@ -240,15 +257,27 @@ function AppContent() {
       <div className={`flex-1 flex flex-col ${isMobile ? 'overflow-y-auto' : 'overflow-hidden'}`}>
         {/* Desktop: horizontal row. Mobile: stacked vertically */}
         <div className={isMobile ? '' : 'flex-1 flex overflow-hidden'}>
-          {/* Topology view */}
+          {/* Topology / Table view */}
           <div className={`relative min-w-0 ${isMobile ? 'h-[60vh] shrink-0' : 'flex-1'}`}>
-            <TopologyView
-              topology={topology}
-              onSelectNode={setSelectedNode}
-              onSelectLink={setSelectedLink}
-              onContextMenuLink={handleContextMenuLink}
-              searchQuery={searchQuery}
-            />
+            {viewMode === 'table' ? (
+              <NodeTable
+                topology={topology}
+                onSelectNode={(node) => {
+                  setSelectedNode(node);
+                  setSelectedLink(null);
+                }}
+                selectedNodeName={selectedNode?.name ?? null}
+                searchQuery={searchQuery}
+              />
+            ) : (
+              <TopologyView
+                topology={topology}
+                onSelectNode={setSelectedNode}
+                onSelectLink={setSelectedLink}
+                onContextMenuLink={handleContextMenuLink}
+                searchQuery={searchQuery}
+              />
+            )}
 
             {/* Link context menu */}
             {contextMenu && (
