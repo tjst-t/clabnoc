@@ -1,9 +1,18 @@
 import { useEffect, useRef } from 'react';
 import { Terminal } from '@xterm/xterm';
 import { FitAddon } from '@xterm/addon-fit';
+import '@xterm/xterm/css/xterm.css';
 import type { TerminalTab as TerminalTabType } from '../types/topology';
 import { createExecWebSocket, createSSHWebSocket } from '../lib/api';
 import { terminalInstances } from '../lib/terminal-store';
+
+const encoder = new TextEncoder();
+
+function sendResize(ws: WebSocket, cols: number, rows: number) {
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ type: 'resize', cols, rows }));
+  }
+}
 
 interface Props {
   project: string;
@@ -68,10 +77,12 @@ export function TerminalTab({ project, tab, active }: Props) {
 
     ws.onopen = () => {
       terminal.writeln(`\x1b[2m--- Connected (${tab.type}) ---\x1b[0m`);
-      // Send SSH credentials as first message
+      // Send SSH credentials as first message (text JSON)
       if (tab.type === 'ssh' && tab.sshCredentials) {
         ws.send(JSON.stringify(tab.sshCredentials));
       }
+      // Send initial terminal size so backend PTY matches
+      sendResize(ws, terminal.cols, terminal.rows);
     };
 
     ws.onmessage = (e) => {
@@ -90,10 +101,16 @@ export function TerminalTab({ project, tab, active }: Props) {
       terminal.writeln('\r\n\x1b[31m--- Connection error ---\x1b[0m');
     };
 
+    // Send terminal input as binary messages
     terminal.onData((data) => {
       if (ws.readyState === WebSocket.OPEN) {
-        ws.send(data);
+        ws.send(encoder.encode(data));
       }
+    });
+
+    // Send resize events as JSON text messages
+    terminal.onResize(({ cols, rows }) => {
+      sendResize(ws, cols, rows);
     });
 
     terminalInstances.set(tab.id, { terminal, ws, fitAddon });

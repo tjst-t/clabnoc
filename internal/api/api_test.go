@@ -44,6 +44,10 @@ func (m *mockDockerClient) ContainerExecAttach(ctx context.Context, execID strin
 	return types.HijackedResponse{}, nil
 }
 
+func (m *mockDockerClient) ContainerExecResize(ctx context.Context, execID string, options container.ResizeOptions) error {
+	return nil
+}
+
 func (m *mockDockerClient) CopyFromContainer(ctx context.Context, containerID, srcPath string) (io.ReadCloser, container.PathStat, error) {
 	return io.NopCloser(strings.NewReader("")), container.PathStat{}, nil
 }
