@@ -24,6 +24,7 @@ type DockerClient interface {
 	ContainerStop(ctx context.Context, containerID string, options container.StopOptions) error
 	ContainerRestart(ctx context.Context, containerID string, options container.StopOptions) error
 	Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error)
+	ContainerStatsOneShot(ctx context.Context, containerID string) (container.StatsResponseReader, error)
 }
 
 // RealClient wraps the real Docker SDK client.
@@ -78,6 +79,10 @@ func (r *RealClient) ContainerRestart(ctx context.Context, containerID string, o
 
 func (r *RealClient) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error) {
 	return r.cli.Events(ctx, options)
+}
+
+func (r *RealClient) ContainerStatsOneShot(ctx context.Context, containerID string) (container.StatsResponseReader, error) {
+	return r.cli.ContainerStatsOneShot(ctx, containerID)
 }
 
 // ExecCommand runs a one-shot command inside a container and returns its output.

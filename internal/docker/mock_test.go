@@ -20,6 +20,8 @@ type MockDockerClient struct {
 	StartErr      error
 	StopErr       error
 	RestartErr    error
+	StatsResult   container.StatsResponseReader
+	StatsErr      error
 }
 
 func (m *MockDockerClient) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
@@ -69,4 +71,8 @@ func (m *MockDockerClient) Events(ctx context.Context, options events.ListOption
 		m.ErrorsCh = make(chan error)
 	}
 	return m.EventsCh, m.ErrorsCh
+}
+
+func (m *MockDockerClient) ContainerStatsOneShot(ctx context.Context, containerID string) (container.StatsResponseReader, error) {
+	return m.StatsResult, m.StatsErr
 }

@@ -26,6 +26,8 @@ type mockDockerClient struct {
 	startErr      error
 	stopErr       error
 	restartErr    error
+	statsResult   container.StatsResponseReader
+	statsErr      error
 }
 
 func (m *mockDockerClient) ContainerList(ctx context.Context, options container.ListOptions) ([]container.Summary, error) {
@@ -66,6 +68,10 @@ func (m *mockDockerClient) ContainerRestart(ctx context.Context, containerID str
 
 func (m *mockDockerClient) Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error) {
 	return make(chan events.Message), make(chan error)
+}
+
+func (m *mockDockerClient) ContainerStatsOneShot(ctx context.Context, containerID string) (container.StatsResponseReader, error) {
+	return m.statsResult, m.statsErr
 }
 
 // mockFaultOp implements network.FaultOperator for API tests.

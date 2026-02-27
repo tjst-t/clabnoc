@@ -37,6 +37,7 @@ func NewRouter(s *Server) http.Handler {
 		r.Get("/projects/{name}/links", s.listLinks)
 		r.Get("/projects/{name}/links/{id}", s.getLink)
 		r.Post("/projects/{name}/links/{id}/fault", s.injectFault)
+		r.Get("/projects/{name}/stats", s.stats)
 		r.Get("/events", s.events)
 	})
 
