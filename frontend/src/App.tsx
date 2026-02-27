@@ -46,6 +46,7 @@ function AppContent() {
   const [netemDialogLink, setNetemDialogLink] = useState<TopologyLink | null>(null);
   const [sshDialogNode, setSSHDialogNode] = useState<{ name: string; kind: string } | null>(null);
   const [terminalCollapsed, setTerminalCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
 
   // Sync selected project to URL
   useEffect(() => {
@@ -199,6 +200,28 @@ function AppContent() {
           />
         </div>
         <div className="flex items-center gap-2 text-2xs text-noc-text-dim">
+          {topology && (
+            <>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  placeholder="/ search nodes..."
+                  className="bg-transparent border border-noc-border text-noc-text text-2xs px-1.5 py-0.5 w-36 focus:outline-none focus:border-noc-accent placeholder:text-noc-text-dim"
+                />
+                {searchQuery && (
+                  <button
+                    onClick={() => setSearchQuery('')}
+                    className="absolute right-1 top-1/2 -translate-y-1/2 text-noc-text-dim hover:text-noc-text text-[9px]"
+                  >
+                    x
+                  </button>
+                )}
+              </div>
+              <span className="text-noc-border">|</span>
+            </>
+          )}
           <span>{topology ? `${topology.nodes.length} nodes` : '--'}</span>
           <span className="text-noc-border">|</span>
           <span>{topology ? `${topology.links.length} links` : '--'}</span>
@@ -224,6 +247,7 @@ function AppContent() {
               onSelectNode={setSelectedNode}
               onSelectLink={setSelectedLink}
               onContextMenuLink={handleContextMenuLink}
+              searchQuery={searchQuery}
             />
 
             {/* Link context menu */}

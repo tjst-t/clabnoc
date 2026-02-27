@@ -18,6 +18,7 @@ interface Props {
   onSelectNode: (node: TopologyNode | null) => void;
   onSelectLink: (link: TopologyLink | null) => void;
   onContextMenuLink: (link: TopologyLink, x: number, y: number) => void;
+  searchQuery?: string;
 }
 
 /** Get the color for a cable based on link state */
@@ -47,7 +48,7 @@ function validateAnnotations(topology: Topology): AnnotationError[] {
   return errors;
 }
 
-export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMenuLink }: Props) {
+export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMenuLink, searchQuery }: Props) {
   // Selection state: either a device or a specific port
   const [selectedDeviceName, setSelectedDeviceName] = useState<string | null>(null);
   const [selectedPortKey, setSelectedPortKey] = useState<string | null>(null);
@@ -158,6 +159,23 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
   }, [layout, selectedDeviceName, selectedPortKey, selectedLinkId]);
 
   const hasSelection = selectedDeviceName !== null || selectedLinkId !== null;
+
+  // Search filter: compute set of matched node names
+  const searchMatchedNodes = useMemo(() => {
+    if (!searchQuery || !topology) return null;
+    const q = searchQuery.toLowerCase();
+    const matched = new Set<string>();
+    for (const node of topology.nodes) {
+      if (
+        node.name.toLowerCase().includes(q) ||
+        node.kind.toLowerCase().includes(q) ||
+        node.status.toLowerCase().includes(q)
+      ) {
+        matched.add(node.name);
+      }
+    }
+    return matched;
+  }, [searchQuery, topology]);
 
   // ── Handlers ──
 
@@ -344,9 +362,11 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
             {/* Devices + embedded ports */}
             {Array.from(layout.devices.values()).map((device) => {
               const name = device.node.name;
-              const isDimmed = hasSelection
+              const selectionDimmed = hasSelection
                 && !relatedDevices.has(name)
                 && !faultedDevices.has(name);
+              const searchDimmed = searchMatchedNodes !== null && !searchMatchedNodes.has(name);
+              const isDimmed = selectionDimmed || searchDimmed;
               return (
                 <DeviceFaceplate
                   key={name}
