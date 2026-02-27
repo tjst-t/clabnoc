@@ -18,6 +18,7 @@ type DockerClient interface {
 	ContainerInspect(ctx context.Context, containerID string) (container.InspectResponse, error)
 	ContainerExecCreate(ctx context.Context, containerID string, config container.ExecOptions) (container.ExecCreateResponse, error)
 	ContainerExecAttach(ctx context.Context, execID string, config container.ExecStartOptions) (types.HijackedResponse, error)
+	ContainerExecResize(ctx context.Context, execID string, options container.ResizeOptions) error
 	CopyFromContainer(ctx context.Context, containerID, srcPath string) (io.ReadCloser, container.PathStat, error)
 	ContainerStart(ctx context.Context, containerID string, options container.StartOptions) error
 	ContainerStop(ctx context.Context, containerID string, options container.StopOptions) error
@@ -53,6 +54,10 @@ func (r *RealClient) ContainerExecCreate(ctx context.Context, containerID string
 
 func (r *RealClient) ContainerExecAttach(ctx context.Context, execID string, config container.ExecStartOptions) (types.HijackedResponse, error) {
 	return r.cli.ContainerExecAttach(ctx, execID, config)
+}
+
+func (r *RealClient) ContainerExecResize(ctx context.Context, execID string, options container.ResizeOptions) error {
+	return r.cli.ContainerExecResize(ctx, execID, options)
 }
 
 func (r *RealClient) CopyFromContainer(ctx context.Context, containerID, srcPath string) (io.ReadCloser, container.PathStat, error) {

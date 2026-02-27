@@ -2,6 +2,7 @@ package docker
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -11,6 +12,13 @@ import (
 	"github.com/docker/docker/api/types/container"
 	"github.com/gorilla/websocket"
 )
+
+// resizeMsg represents a terminal resize control message from the client.
+type resizeMsg struct {
+	Type string `json:"type"`
+	Cols uint   `json:"cols"`
+	Rows uint   `json:"rows"`
+}
 
 // ExecSession manages a docker exec session bridged to a WebSocket.
 type ExecSession struct {
@@ -79,7 +87,7 @@ func (s *ExecSession) Bridge(ctx context.Context, ws *websocket.Conn) error {
 	go func() {
 		defer wg.Done()
 		for {
-			_, msg, err := ws.ReadMessage()
+			msgType, msg, err := ws.ReadMessage()
 			if err != nil {
 				if !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) && !isClosedError(err) {
 					slog.Debug("ws read error", "error", err)
@@ -87,6 +95,21 @@ func (s *ExecSession) Bridge(ctx context.Context, ws *websocket.Conn) error {
 				hijack.Close()
 				return
 			}
+
+			// Text messages are JSON control messages (e.g. resize)
+			if msgType == websocket.TextMessage {
+				var ctrl resizeMsg
+				if json.Unmarshal(msg, &ctrl) == nil && ctrl.Type == "resize" && ctrl.Cols > 0 && ctrl.Rows > 0 {
+					if rerr := s.cli.ContainerExecResize(ctx, resp.ID, container.ResizeOptions{
+						Height: ctrl.Rows,
+						Width:  ctrl.Cols,
+					}); rerr != nil {
+						slog.Debug("exec resize error", "error", rerr)
+					}
+					continue
+				}
+			}
+
 			if _, werr := hijack.Conn.Write(msg); werr != nil {
 				slog.Debug("docker write error", "error", werr)
 				return

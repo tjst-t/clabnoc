@@ -1,6 +1,7 @@
 package ssh
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"log/slog"
@@ -9,6 +10,13 @@ import (
 	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
 )
+
+// resizeMsg represents a terminal resize control message from the client.
+type resizeMsg struct {
+	Type string `json:"type"`
+	Cols int    `json:"cols"`
+	Rows int    `json:"rows"`
+}
 
 // Proxy bridges a WebSocket connection to an SSH session.
 type Proxy struct {
@@ -110,7 +118,7 @@ func (p *Proxy) Bridge(ws *websocket.Conn) error {
 	go func() {
 		defer wg.Done()
 		for {
-			_, msg, err := ws.ReadMessage()
+			msgType, msg, err := ws.ReadMessage()
 			if err != nil {
 				if !websocket.IsCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway) {
 					slog.Debug("ws read error in SSH proxy", "error", err)
@@ -118,6 +126,18 @@ func (p *Proxy) Bridge(ws *websocket.Conn) error {
 				stdin.Close()
 				return
 			}
+
+			// Text messages are JSON control messages (e.g. resize)
+			if msgType == websocket.TextMessage {
+				var ctrl resizeMsg
+				if json.Unmarshal(msg, &ctrl) == nil && ctrl.Type == "resize" && ctrl.Cols > 0 && ctrl.Rows > 0 {
+					if rerr := session.WindowChange(ctrl.Rows, ctrl.Cols); rerr != nil {
+						slog.Debug("SSH window change error", "error", rerr)
+					}
+					continue
+				}
+			}
+
 			if _, werr := stdin.Write(msg); werr != nil {
 				slog.Debug("SSH stdin write error", "error", werr)
 				return
