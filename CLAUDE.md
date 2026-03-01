@@ -95,6 +95,14 @@ Dockerfile
 Makefile
 ```
 
+## サーバー起動
+
+- `make serve` — ビルド（フロントエンド + バックエンド）して開発サーバーを起動
+- テストサーバーは `make serve` で起動すること。ポート番号を直接指定してはいけない。
+- サーバー起動スクリプトを作成・変更する場合は、portman ガイドを参照すること:
+  https://raw.githubusercontent.com/tjst-t/port-manager/main/docs/CLAUDE_INTEGRATION.md
+- .env ファイルを git commit してはいけない（.gitignore に追加済み）
+
 ## Development Commands
 
 ```bash
@@ -115,7 +123,7 @@ cd frontend && npm run lint         # ESLint
 make build          # frontend build + go build
 make test           # 全テスト実行
 make docker-build   # Docker イメージビルド
-make dev            # 開発モード (frontend dev + go run)
+make serve          # 開発サーバー起動 (portman でポート自動割当)
 make lint           # 全lint
 ```
 

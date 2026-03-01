@@ -1,9 +1,8 @@
-.PHONY: all build build-frontend embed-frontend build-backend test test-go test-frontend lint dev dev-stop docker-build docker-run clean
+.PHONY: all build build-frontend embed-frontend build-backend test test-go test-frontend lint serve serve-stop docker-build docker-run clean
 
 BINARY := bin/clabnoc
 DOCKER_IMAGE := ghcr.io/tjst-t/clabnoc
 VERSION := $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
-DEV_ADDR := :8888
 DEV_PID_FILE := /tmp/clabnoc-dev.pid
 
 all: build
@@ -38,36 +37,30 @@ lint:
 	go vet ./...
 	cd frontend && npm run lint
 
-## Dev server
+## Dev server (portman)
 
-dev: build
-	@# Kill by PID file if available
+serve: build
+	@# Kill previous dev server if running
 	@if [ -f $(DEV_PID_FILE) ] && kill -0 $$(cat $(DEV_PID_FILE)) 2>/dev/null; then \
 		echo "Stopping old dev server (PID $$(cat $(DEV_PID_FILE)))..."; \
 		kill $$(cat $(DEV_PID_FILE)) 2>/dev/null; \
 		sleep 1; \
 	fi
-	@# Fallback: kill any remaining clabnoc process on DEV_ADDR
-	@# Bracket trick prevents pkill from matching its own parent shell
-	@pkill -f '[b]in/clabnoc.*$(DEV_ADDR)' 2>/dev/null || true
-	@sleep 0.5
-	@nohup ./$(BINARY) -dev -addr $(DEV_ADDR) > /tmp/clabnoc.log 2>&1 & echo $$! > $(DEV_PID_FILE)
+	@nohup portman exec --name app --expose -- ./$(BINARY) -dev -addr :{} > /tmp/clabnoc.log 2>&1 & echo $$! > $(DEV_PID_FILE)
 	@sleep 1
-	@echo "clabnoc dev server started (PID $$(cat $(DEV_PID_FILE)), addr $(DEV_ADDR))"
+	@echo "clabnoc dev server started (PID $$(cat $(DEV_PID_FILE)))"
 	@echo "Log: tail -f /tmp/clabnoc.log"
 
-dev-stop:
+serve-stop:
 	@if [ -f $(DEV_PID_FILE) ] && kill -0 $$(cat $(DEV_PID_FILE)) 2>/dev/null; then \
 		echo "Stopping dev server (PID $$(cat $(DEV_PID_FILE)))..."; \
 		kill $$(cat $(DEV_PID_FILE)); \
 		rm -f $(DEV_PID_FILE); \
 		echo "Stopped."; \
 	else \
-		echo "No dev server running (by PID file)."; \
+		echo "No dev server running."; \
 		rm -f $(DEV_PID_FILE); \
 	fi
-	@# Fallback: kill any remaining clabnoc process on DEV_ADDR
-	@pkill -f '[b]in/clabnoc.*$(DEV_ADDR)' 2>/dev/null && echo "Killed remaining clabnoc process." || true
 
 ## Docker
 
