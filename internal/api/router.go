@@ -19,6 +19,7 @@ type Server struct {
 	FaultManager   *network.FaultManager
 	CaptureManager *capture.CaptureManager
 	VethResolver   capture.VethResolver
+	StreamExecutor capture.StreamExecutor
 }
 
 // NewRouter creates the HTTP router with all API routes.
@@ -42,6 +43,7 @@ func NewRouter(s *Server) http.Handler {
 		r.Post("/projects/{name}/links/{id}/fault", s.injectFault)
 		r.Post("/projects/{name}/links/{id}/capture", s.captureAction)
 		r.Get("/projects/{name}/links/{id}/capture/download", s.captureDownload)
+		r.Get("/projects/{name}/links/{id}/capture/stream", s.captureStream)
 		r.Get("/projects/{name}/stats", s.stats)
 		r.Get("/bpf-presets", s.listBPFPresets)
 		r.Get("/events", s.events)

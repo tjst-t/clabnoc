@@ -56,6 +56,7 @@ func main() {
 		FaultManager:   faultManager,
 		CaptureManager: captureManager,
 		VethResolver:   vethResolver,
+		StreamExecutor: &capture.HostStreamExecutor{},
 	}
 
 	router := api.NewRouter(server)

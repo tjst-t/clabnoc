@@ -1,15 +1,21 @@
 package api
 
 import (
+	"bufio"
 	"context"
 	"encoding/json"
 	"fmt"
 	"log/slog"
 	"net/http"
 	"net/url"
+	"os"
 	"path/filepath"
+	"sync"
+	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/gorilla/websocket"
+	"github.com/tjst-t/clabnoc/internal/capture"
 	"github.com/tjst-t/clabnoc/internal/docker"
 	"github.com/tjst-t/clabnoc/internal/topology"
 )
@@ -119,4 +125,115 @@ func (s *Server) resolveHostVeth(ctx context.Context, projectName, linkID string
 	}
 
 	return hostVeth, nil
+}
+
+// captureStream handles WebSocket connections for live packet streaming.
+func (s *Server) captureStream(w http.ResponseWriter, r *http.Request) {
+	name := chi.URLParam(r, "name")
+	linkID, _ := url.PathUnescape(chi.URLParam(r, "id"))
+
+	if s.StreamExecutor == nil || s.VethResolver == nil {
+		http.Error(w, "capture streaming not available", http.StatusServiceUnavailable)
+		return
+	}
+
+	// Resolve host veth
+	hostVeth, err := s.resolveHostVeth(r.Context(), name, linkID)
+	if err != nil {
+		slog.Error("failed to resolve host veth for stream", "link", linkID, "error", err)
+		http.Error(w, "failed to resolve interface: "+err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	bpfFilter := r.URL.Query().Get("bpf_filter")
+
+	// Upgrade to WebSocket
+	ws, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		slog.Error("websocket upgrade failed", "error", err)
+		return
+	}
+	defer ws.Close()
+
+	// Start tcpdump stream
+	ctx, cancel := context.WithCancel(r.Context())
+	defer cancel()
+
+	stdout, cmd, err := s.StreamExecutor.StartStream(ctx, hostVeth, bpfFilter)
+	if err != nil {
+		slog.Error("failed to start capture stream", "link", linkID, "error", err)
+		ws.WriteMessage(websocket.TextMessage, []byte(`{"type":"error","data":"failed to start stream"}`))
+		return
+	}
+
+	// Client control message reader
+	var paused bool
+	var mu sync.Mutex
+
+	// Read control messages from client
+	go func() {
+		defer cancel()
+		for {
+			_, msg, err := ws.ReadMessage()
+			if err != nil {
+				return
+			}
+			var ctrl struct {
+				Type string `json:"type"`
+			}
+			if json.Unmarshal(msg, &ctrl) == nil {
+				mu.Lock()
+				switch ctrl.Type {
+				case "pause":
+					paused = true
+				case "resume":
+					paused = false
+				}
+				mu.Unlock()
+			}
+		}
+	}()
+
+	// Read stdout line by line and send as JSON
+	scanner := bufio.NewScanner(stdout)
+	seqNo := 0
+	for scanner.Scan() {
+		select {
+		case <-ctx.Done():
+			break
+		default:
+		}
+
+		mu.Lock()
+		isPaused := paused
+		mu.Unlock()
+
+		if isPaused {
+			continue
+		}
+
+		line := scanner.Text()
+		seqNo++
+
+		pkt, err := capture.ParseTcpdumpLine(line, seqNo)
+		if err != nil {
+			continue // skip unparseable lines (e.g., tcpdump startup messages)
+		}
+
+		data, err := json.Marshal(pkt)
+		if err != nil {
+			continue
+		}
+
+		ws.SetWriteDeadline(time.Now().Add(5 * time.Second))
+		if err := ws.WriteMessage(websocket.TextMessage, data); err != nil {
+			break
+		}
+	}
+
+	// Clean up: kill tcpdump
+	if cmd.Process != nil {
+		cmd.Process.Signal(os.Interrupt)
+		cmd.Wait()
+	}
 }
