@@ -70,6 +70,13 @@ export interface NetemParams {
   loss_percent: number;
   corrupt_percent: number;
   duplicate_percent: number;
+  bpf_filter?: string;
+}
+
+export interface BPFPreset {
+  name: string;
+  filter: string;
+  description: string;
 }
 
 export interface Groups {

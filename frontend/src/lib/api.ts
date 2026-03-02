@@ -6,6 +6,7 @@ import type {
   FaultRequest,
   NodeActionRequest,
   SSHCredentials,
+  BPFPreset,
 } from '../types/topology';
 
 const BASE_URL = '/api/v1';
@@ -58,6 +59,10 @@ export async function injectFault(project: string, linkId: string, req: FaultReq
       body: JSON.stringify(req),
     }
   );
+}
+
+export async function getBPFPresets(): Promise<BPFPreset[]> {
+  return fetchJSON<BPFPreset[]>(`${BASE_URL}/bpf-presets`);
 }
 
 export function createExecWebSocket(project: string, node: string, cmd = '/bin/bash'): WebSocket {

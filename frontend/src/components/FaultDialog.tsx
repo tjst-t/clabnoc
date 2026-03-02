@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import type { TopologyLink, NetemParams } from '../types/topology';
+import { useState, useEffect } from 'react';
+import type { TopologyLink, NetemParams, BPFPreset } from '../types/topology';
+import { getBPFPresets } from '../lib/api';
 
 interface Props {
   link: TopologyLink;
@@ -17,10 +18,17 @@ export function FaultDialog({ link, onApply, onClose }: Props) {
       duplicate_percent: 0,
     }
   );
+  const [bpfFilter, setBpfFilter] = useState(link.netem?.bpf_filter ?? '');
+  const [presets, setPresets] = useState<BPFPreset[]>([]);
+
+  useEffect(() => {
+    getBPFPresets().then(setPresets).catch(() => {});
+  }, []);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onApply(link.id, params);
+    const finalParams = { ...params, bpf_filter: bpfFilter || undefined };
+    onApply(link.id, finalParams);
     onClose();
   };
 
@@ -30,6 +38,19 @@ export function FaultDialog({ link, onApply, onClose }: Props) {
       setParams((p) => ({ ...p, [field]: num }));
     }
   };
+
+  const handlePresetChange = (value: string) => {
+    if (value === '') {
+      setBpfFilter('');
+      return;
+    }
+    const preset = presets.find((p) => p.name === value);
+    if (preset) {
+      setBpfFilter(preset.filter);
+    }
+  };
+
+  const hasBpf = bpfFilter.trim().length > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center" onClick={onClose}>
@@ -86,17 +107,82 @@ export function FaultDialog({ link, onApply, onClose }: Props) {
             />
           </div>
 
+          {/* ─── BPF Filter ─── */}
+          <div className="tui-border p-2 space-y-2">
+            <div className="text-2xs text-noc-text-dim">--- BPF Filter (selective) ---</div>
+            <div>
+              <label htmlFor="bpf-preset" className="block text-2xs text-noc-text-dim mb-0.5">
+                Preset
+              </label>
+              <select
+                id="bpf-preset"
+                value={presets.find((p) => p.filter === bpfFilter)?.name ?? ''}
+                onChange={(e) => handlePresetChange(e.target.value)}
+                className="w-full bg-noc-surface tui-border px-2 py-1
+                           text-xs text-noc-text-bright
+                           focus:outline-none focus:border-noc-cyan"
+              >
+                <option value="">-- none (all traffic) --</option>
+                {presets.map((p) => (
+                  <option key={p.name} value={p.name}>
+                    {p.name} ({p.filter})
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label htmlFor="bpf-custom" className="block text-2xs text-noc-text-dim mb-0.5">
+                Custom Filter
+              </label>
+              <input
+                id="bpf-custom"
+                type="text"
+                value={bpfFilter}
+                onChange={(e) => setBpfFilter(e.target.value)}
+                placeholder="e.g. tcp port 179"
+                className="w-full bg-noc-surface tui-border px-2 py-1
+                           text-xs text-noc-text-bright
+                           placeholder:text-noc-text-dim placeholder:opacity-50
+                           focus:outline-none focus:border-noc-cyan"
+              />
+            </div>
+            {hasBpf && (
+              <div className="text-2xs text-noc-cyan">
+                Only matching traffic will be affected by netem
+              </div>
+            )}
+          </div>
+
           {/* Preview */}
           <div className="tui-border p-2">
             <div className="text-2xs text-noc-text-dim mb-1">--- Preview ---</div>
-            <code className="text-2xs text-noc-amber block">
-              tc qdisc add dev veth root netem
-              {params.delay_ms > 0 && ` delay ${params.delay_ms}ms`}
-              {params.jitter_ms > 0 && ` ${params.jitter_ms}ms`}
-              {params.loss_percent > 0 && ` loss ${params.loss_percent}%`}
-              {params.corrupt_percent > 0 && ` corrupt ${params.corrupt_percent}%`}
-              {params.duplicate_percent > 0 && ` duplicate ${params.duplicate_percent}%`}
-            </code>
+            {hasBpf ? (
+              <div className="space-y-0.5">
+                <code className="text-2xs text-noc-amber block">
+                  tc qdisc add dev veth root handle 1: prio bands 3
+                </code>
+                <code className="text-2xs text-noc-amber block">
+                  tc qdisc add dev veth parent 1:1 netem
+                  {params.delay_ms > 0 && ` delay ${params.delay_ms}ms`}
+                  {params.jitter_ms > 0 && ` ${params.jitter_ms}ms`}
+                  {params.loss_percent > 0 && ` loss ${params.loss_percent}%`}
+                  {params.corrupt_percent > 0 && ` corrupt ${params.corrupt_percent}%`}
+                  {params.duplicate_percent > 0 && ` duplicate ${params.duplicate_percent}%`}
+                </code>
+                <code className="text-2xs text-noc-cyan block">
+                  tc filter add dev veth ... match &quot;{bpfFilter}&quot; flowid 1:1
+                </code>
+              </div>
+            ) : (
+              <code className="text-2xs text-noc-amber block">
+                tc qdisc add dev veth root netem
+                {params.delay_ms > 0 && ` delay ${params.delay_ms}ms`}
+                {params.jitter_ms > 0 && ` ${params.jitter_ms}ms`}
+                {params.loss_percent > 0 && ` loss ${params.loss_percent}%`}
+                {params.corrupt_percent > 0 && ` corrupt ${params.corrupt_percent}%`}
+                {params.duplicate_percent > 0 && ` duplicate ${params.duplicate_percent}%`}
+              </code>
+            )}
           </div>
 
           {/* Buttons */}
