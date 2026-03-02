@@ -9,11 +9,12 @@ import (
 
 // NetemParams holds tc netem parameters.
 type NetemParams struct {
-	DelayMS          int `json:"delay_ms"`
-	JitterMS         int `json:"jitter_ms"`
-	LossPercent      int `json:"loss_percent"`
-	CorruptPercent   int `json:"corrupt_percent"`
-	DuplicatePercent int `json:"duplicate_percent"`
+	DelayMS          int    `json:"delay_ms"`
+	JitterMS         int    `json:"jitter_ms"`
+	LossPercent      int    `json:"loss_percent"`
+	CorruptPercent   int    `json:"corrupt_percent"`
+	DuplicatePercent int    `json:"duplicate_percent"`
+	BPFFilter        string `json:"bpf_filter,omitempty"`
 }
 
 // FaultOperator abstracts fault injection operations on container interfaces.
@@ -54,31 +55,88 @@ func (o *DockerFaultOperator) LinkSetUp(ctx context.Context, containerID, ifName
 }
 
 func (o *DockerFaultOperator) ApplyNetem(ctx context.Context, containerID, ifName string, params *NetemParams) error {
+	if params.BPFFilter != "" {
+		return o.applyFilteredNetem(ctx, containerID, ifName, params)
+	}
+	return o.applySimpleNetem(ctx, containerID, ifName, params)
+}
+
+func (o *DockerFaultOperator) applySimpleNetem(ctx context.Context, containerID, ifName string, params *NetemParams) error {
 	// First try to delete existing qdisc (ignore error)
 	_, _ = o.execFn(ctx, containerID, []string{"tc", "qdisc", "del", "dev", ifName, "root"})
 
-	cmd := []string{"tc", "qdisc", "add", "dev", ifName, "root", "netem"}
-	if params.DelayMS > 0 {
-		cmd = append(cmd, "delay", fmt.Sprintf("%dms", params.DelayMS))
-		if params.JitterMS > 0 {
-			cmd = append(cmd, fmt.Sprintf("%dms", params.JitterMS))
-		}
-	}
-	if params.LossPercent > 0 {
-		cmd = append(cmd, "loss", fmt.Sprintf("%d%%", params.LossPercent))
-	}
-	if params.CorruptPercent > 0 {
-		cmd = append(cmd, "corrupt", fmt.Sprintf("%d%%", params.CorruptPercent))
-	}
-	if params.DuplicatePercent > 0 {
-		cmd = append(cmd, "duplicate", fmt.Sprintf("%d%%", params.DuplicatePercent))
-	}
+	cmd := append([]string{"tc", "qdisc", "add", "dev", ifName, "root", "netem"}, buildNetemArgs(params)...)
 
 	out, err := o.execFn(ctx, containerID, cmd)
 	if err != nil {
 		return fmt.Errorf("tc qdisc add netem on %s: %w (output: %s)", ifName, err, strings.TrimSpace(out))
 	}
 	return nil
+}
+
+// applyFilteredNetem sets up a prio qdisc with netem on band 1 and tc filter
+// to classify only matching packets into the netem band.
+// Structure: prio (root 1:0, 3 bands) -> netem (1:1) + passthrough (1:2, 1:3)
+// tc filter classifies matching packets to flowid 1:1
+func (o *DockerFaultOperator) applyFilteredNetem(ctx context.Context, containerID, ifName string, params *NetemParams) error {
+	// 1. Delete existing root qdisc (ignore error)
+	_, _ = o.execFn(ctx, containerID, []string{"tc", "qdisc", "del", "dev", ifName, "root"})
+
+	// 2. Add prio root qdisc with 3 bands, all traffic defaults to band 3 (passthrough)
+	out, err := o.execFn(ctx, containerID, []string{
+		"tc", "qdisc", "add", "dev", ifName, "root", "handle", "1:", "prio", "bands", "3",
+		"priomap", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2", "2",
+	})
+	if err != nil {
+		return fmt.Errorf("tc prio add on %s: %w (output: %s)", ifName, err, strings.TrimSpace(out))
+	}
+
+	// 3. Add netem child qdisc on band 1 (handle 1:1)
+	netemCmd := append([]string{
+		"tc", "qdisc", "add", "dev", ifName, "parent", "1:1", "handle", "10:", "netem",
+	}, buildNetemArgs(params)...)
+
+	out, err = o.execFn(ctx, containerID, netemCmd)
+	if err != nil {
+		return fmt.Errorf("tc netem add on %s: %w (output: %s)", ifName, err, strings.TrimSpace(out))
+	}
+
+	// 4. Add tc filter rules to classify matching packets to band 1
+	filterCmds, err := BuildTCFilterCommands(ifName, params.BPFFilter)
+	if err != nil {
+		return fmt.Errorf("building tc filter for %q: %w", params.BPFFilter, err)
+	}
+
+	for _, filterArgs := range filterCmds {
+		cmd := append([]string{"tc"}, filterArgs...)
+		out, err = o.execFn(ctx, containerID, cmd)
+		if err != nil {
+			return fmt.Errorf("tc filter add on %s: %w (output: %s)", ifName, err, strings.TrimSpace(out))
+		}
+	}
+
+	return nil
+}
+
+// buildNetemArgs builds the netem-specific arguments from params.
+func buildNetemArgs(params *NetemParams) []string {
+	var args []string
+	if params.DelayMS > 0 {
+		args = append(args, "delay", fmt.Sprintf("%dms", params.DelayMS))
+		if params.JitterMS > 0 {
+			args = append(args, fmt.Sprintf("%dms", params.JitterMS))
+		}
+	}
+	if params.LossPercent > 0 {
+		args = append(args, "loss", fmt.Sprintf("%d%%", params.LossPercent))
+	}
+	if params.CorruptPercent > 0 {
+		args = append(args, "corrupt", fmt.Sprintf("%d%%", params.CorruptPercent))
+	}
+	if params.DuplicatePercent > 0 {
+		args = append(args, "duplicate", fmt.Sprintf("%d%%", params.DuplicatePercent))
+	}
+	return args
 }
 
 func (o *DockerFaultOperator) ClearNetem(ctx context.Context, containerID, ifName string) error {
