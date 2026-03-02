@@ -9,6 +9,10 @@ interface Props {
   onNodeAction: (node: string, action: 'start' | 'stop' | 'restart') => void;
   onFaultAction: (linkId: string, action: 'up' | 'down' | 'clear_netem') => void;
   onOpenNetemDialog: (link: TopologyLink) => void;
+  onStartCapture?: (linkId: string) => void;
+  onStopCapture?: (linkId: string) => void;
+  onDownloadCapture?: (linkId: string) => void;
+  capturingLinks?: Set<string>;
   style?: React.CSSProperties;
   mobile?: boolean;
   containerStats?: Map<string, ContainerStats>;
@@ -22,6 +26,10 @@ export function DetailPanel({
   onNodeAction,
   onFaultAction,
   onOpenNetemDialog,
+  onStartCapture,
+  onStopCapture,
+  onDownloadCapture,
+  capturingLinks,
   style,
   mobile,
   containerStats,
@@ -48,6 +56,10 @@ export function DetailPanel({
           link={link}
           onFaultAction={onFaultAction}
           onOpenNetemDialog={onOpenNetemDialog}
+          onStartCapture={onStartCapture}
+          onStopCapture={onStopCapture}
+          onDownloadCapture={onDownloadCapture}
+          isCapturing={capturingLinks?.has(link.id) ?? false}
         />
       ) : (
         <EmptyContent />
@@ -193,10 +205,18 @@ function LinkContent({
   link,
   onFaultAction,
   onOpenNetemDialog,
+  onStartCapture,
+  onStopCapture,
+  onDownloadCapture,
+  isCapturing,
 }: {
   link: TopologyLink;
   onFaultAction: (linkId: string, action: 'up' | 'down' | 'clear_netem') => void;
   onOpenNetemDialog: (link: TopologyLink) => void;
+  onStartCapture?: (linkId: string) => void;
+  onStopCapture?: (linkId: string) => void;
+  onDownloadCapture?: (linkId: string) => void;
+  isCapturing: boolean;
 }) {
   const stateColor =
     link.state === 'up' ? 'text-noc-green' : link.state === 'down' ? 'text-noc-red' : 'text-noc-amber';
@@ -253,6 +273,31 @@ function LinkContent({
                   </button>
                   <button onClick={() => onOpenNetemDialog(link)} className="tui-btn tui-btn-amber">
                     Update Netem
+                  </button>
+                </>
+              )}
+            </div>
+          </TuiSection>
+
+          <TuiSection title="Packet Capture">
+            <div className="flex flex-wrap gap-2">
+              {isCapturing ? (
+                <>
+                  <span className="text-2xs text-noc-red animate-pulse-slow">REC</span>
+                  <button onClick={() => onStopCapture?.(link.id)} className="tui-btn tui-btn-red">
+                    Stop Capture
+                  </button>
+                  <button onClick={() => onDownloadCapture?.(link.id)} className="tui-btn tui-btn-cyan">
+                    Download Pcap
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => onStartCapture?.(link.id)} className="tui-btn tui-btn-cyan">
+                    Start Capture
+                  </button>
+                  <button onClick={() => onDownloadCapture?.(link.id)} className="tui-btn tui-btn-dim">
+                    Download Pcap
                   </button>
                 </>
               )}

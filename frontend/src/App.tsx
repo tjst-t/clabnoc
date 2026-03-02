@@ -6,7 +6,7 @@ import { useWebSocket } from './hooks/useWebSocket';
 import { useTerminalTabs } from './hooks/useTerminalTabs';
 import { useResizable } from './hooks/useResizable';
 import { useContainerStats } from './hooks/useContainerStats';
-import { nodeAction, injectFault } from './lib/api';
+import { nodeAction, injectFault, captureAction, getCaptureDownloadUrl } from './lib/api';
 import { ProjectSelector } from './components/ProjectSelector';
 import { TopologyView } from './components/TopologyView';
 import { NodeTable } from './components/NodeTable';
@@ -50,6 +50,7 @@ function AppContent() {
   const [terminalCollapsed, setTerminalCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'topology' | 'table'>('topology');
+  const [capturingLinks, setCapturingLinks] = useState<Set<string>>(new Set());
 
   // Sync selected project to URL
   useEffect(() => {
@@ -187,6 +188,45 @@ function AppContent() {
       }
     },
     [selectedProject, refreshTopology]
+  );
+
+  const handleStartCapture = useCallback(
+    async (linkId: string) => {
+      if (!selectedProject) return;
+      try {
+        await captureAction(selectedProject, linkId, { action: 'start' });
+        setCapturingLinks((prev) => new Set(prev).add(linkId));
+      } catch (e) {
+        console.error('Start capture failed:', e);
+      }
+    },
+    [selectedProject]
+  );
+
+  const handleStopCapture = useCallback(
+    async (linkId: string) => {
+      if (!selectedProject) return;
+      try {
+        await captureAction(selectedProject, linkId, { action: 'stop' });
+        setCapturingLinks((prev) => {
+          const next = new Set(prev);
+          next.delete(linkId);
+          return next;
+        });
+      } catch (e) {
+        console.error('Stop capture failed:', e);
+      }
+    },
+    [selectedProject]
+  );
+
+  const handleDownloadCapture = useCallback(
+    (linkId: string) => {
+      if (!selectedProject) return;
+      const url = getCaptureDownloadUrl(selectedProject, linkId);
+      window.open(url, '_blank');
+    },
+    [selectedProject]
   );
 
   return (
@@ -349,6 +389,36 @@ function AppContent() {
                     closeContextMenu();
                   }}
                 />
+                <div className="tui-border-t my-0.5" />
+                {capturingLinks.has(contextMenu.link.id) ? (
+                  <>
+                    <ContextMenuItem
+                      label="Stop Capture"
+                      color="text-noc-red"
+                      onClick={() => {
+                        handleStopCapture(contextMenu.link.id);
+                        closeContextMenu();
+                      }}
+                    />
+                    <ContextMenuItem
+                      label="Download Pcap"
+                      color="text-noc-cyan"
+                      onClick={() => {
+                        handleDownloadCapture(contextMenu.link.id);
+                        closeContextMenu();
+                      }}
+                    />
+                  </>
+                ) : (
+                  <ContextMenuItem
+                    label="Start Capture"
+                    color="text-noc-cyan"
+                    onClick={() => {
+                      handleStartCapture(contextMenu.link.id);
+                      closeContextMenu();
+                    }}
+                  />
+                )}
               </div>
             )}
           </div>
@@ -365,6 +435,10 @@ function AppContent() {
             onNodeAction={handleNodeAction}
             onFaultAction={handleFaultAction}
             onOpenNetemDialog={setNetemDialogLink}
+            onStartCapture={handleStartCapture}
+            onStopCapture={handleStopCapture}
+            onDownloadCapture={handleDownloadCapture}
+            capturingLinks={capturingLinks}
             style={isMobile ? undefined : { width: detailWidth }}
             mobile={isMobile}
             containerStats={containerStats}

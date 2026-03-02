@@ -7,6 +7,8 @@ import type {
   NodeActionRequest,
   SSHCredentials,
   BPFPreset,
+  CaptureSession,
+  CaptureRequest,
 } from '../types/topology';
 
 const BASE_URL = '/api/v1';
@@ -63,6 +65,21 @@ export async function injectFault(project: string, linkId: string, req: FaultReq
 
 export async function getBPFPresets(): Promise<BPFPreset[]> {
   return fetchJSON<BPFPreset[]>(`${BASE_URL}/bpf-presets`);
+}
+
+export async function captureAction(project: string, linkId: string, req: CaptureRequest): Promise<CaptureSession> {
+  return fetchJSON<CaptureSession>(
+    `${BASE_URL}/projects/${encodeURIComponent(project)}/links/${encodeURIComponent(linkId)}/capture`,
+    {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(req),
+    }
+  );
+}
+
+export function getCaptureDownloadUrl(project: string, linkId: string): string {
+  return `${BASE_URL}/projects/${encodeURIComponent(project)}/links/${encodeURIComponent(linkId)}/capture/download`;
 }
 
 export function createExecWebSocket(project: string, node: string, cmd = '/bin/bash'): WebSocket {

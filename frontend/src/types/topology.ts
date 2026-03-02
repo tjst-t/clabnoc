@@ -119,3 +119,18 @@ export interface TerminalTab {
   label: string;
   sshCredentials?: SSHCredentials;
 }
+
+export interface CaptureSession {
+  id: string;
+  link_id: string;
+  interface: string;
+  start_time: string;
+  file_path: string;
+  bpf_filter?: string;
+  active: boolean;
+}
+
+export interface CaptureRequest {
+  action: 'start' | 'stop';
+  bpf_filter?: string;
+}
