@@ -14,6 +14,7 @@ import { DetailPanel } from './components/DetailPanel';
 import { TerminalPanel } from './components/TerminalPanel';
 import { FaultDialog } from './components/FaultDialog';
 import { SSHDialog } from './components/SSHDialog';
+import { CapturePanel } from './components/CapturePanel';
 import { destroyTerminalTab } from './lib/terminal-store';
 import { ThemeProvider, useTheme } from './lib/theme';
 
@@ -51,6 +52,7 @@ function AppContent() {
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'topology' | 'table'>('topology');
   const [capturingLinks, setCapturingLinks] = useState<Set<string>>(new Set());
+  const [captureStreamLink, setCaptureStreamLink] = useState<TopologyLink | null>(null);
 
   // Sync selected project to URL
   useEffect(() => {
@@ -419,6 +421,14 @@ function AppContent() {
                     }}
                   />
                 )}
+                <ContextMenuItem
+                  label="Live Stream"
+                  color="text-noc-green"
+                  onClick={() => {
+                    setCaptureStreamLink(contextMenu.link);
+                    closeContextMenu();
+                  }}
+                />
               </div>
             )}
           </div>
@@ -464,6 +474,21 @@ function AppContent() {
           </>
         )}
       </div>
+
+      {/* Capture stream panel */}
+      {captureStreamLink && selectedProject && (
+        <div
+          className="fixed bottom-0 left-0 right-0 z-30 tui-border-t animate-fade-in"
+          style={{ height: 320 }}
+        >
+          <CapturePanel
+            project={selectedProject}
+            linkId={captureStreamLink.id}
+            linkLabel={`${captureStreamLink.a.node} <-> ${captureStreamLink.z.node}`}
+            onClose={() => setCaptureStreamLink(null)}
+          />
+        </div>
+      )}
 
       {/* Netem dialog */}
       {netemDialogLink && (
