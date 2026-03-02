@@ -118,3 +118,12 @@ export function createEventsWebSocket(project?: string): WebSocket {
   const params = project ? `?project=${encodeURIComponent(project)}` : '';
   return new WebSocket(`${proto}//${host}${BASE_URL}/events${params}`);
 }
+
+export function createCaptureStreamWebSocket(project: string, linkId: string, bpfFilter?: string): WebSocket {
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const host = window.location.host;
+  const params = bpfFilter ? `?bpf_filter=${encodeURIComponent(bpfFilter)}` : '';
+  return new WebSocket(
+    `${proto}//${host}${BASE_URL}/projects/${encodeURIComponent(project)}/links/${encodeURIComponent(linkId)}/capture/stream${params}`
+  );
+}

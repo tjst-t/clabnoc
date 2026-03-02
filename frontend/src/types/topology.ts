@@ -134,3 +134,13 @@ export interface CaptureRequest {
   action: 'start' | 'stop';
   bpf_filter?: string;
 }
+
+export interface PacketInfo {
+  no: number;
+  time: string;
+  source: string;
+  destination: string;
+  protocol: string;
+  length: number;
+  info: string;
+}
