@@ -17,7 +17,7 @@ RUN CGO_ENABLED=0 go build -ldflags "-s -w" -o /clabnoc ./cmd/clabnoc
 
 # Stage 3: Runtime
 FROM alpine:3.20
-RUN apk add --no-cache ca-certificates
+RUN apk add --no-cache ca-certificates tcpdump
 COPY --from=backend-builder /clabnoc /usr/local/bin/clabnoc
 
 EXPOSE 8080

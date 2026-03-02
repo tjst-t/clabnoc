@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/tjst-t/clabnoc/internal/api"
+	"github.com/tjst-t/clabnoc/internal/capture"
 	"github.com/tjst-t/clabnoc/internal/docker"
 	"github.com/tjst-t/clabnoc/internal/network"
 )
@@ -46,9 +47,15 @@ func main() {
 	}
 	faultManager := network.NewFaultManager(network.NewDockerFaultOperator(execFn))
 
+	pidProvider := capture.NewDockerPIDProvider(dockerClient)
+	vethResolver := capture.NewProcVethResolver(pidProvider)
+	captureManager := capture.NewCaptureManager(&capture.HostCaptureExecutor{}, "/tmp/clabnoc/captures")
+
 	server := &api.Server{
-		Docker:       dockerClient,
-		FaultManager: faultManager,
+		Docker:         dockerClient,
+		FaultManager:   faultManager,
+		CaptureManager: captureManager,
+		VethResolver:   vethResolver,
 	}
 
 	router := api.NewRouter(server)

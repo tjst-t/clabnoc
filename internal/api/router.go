@@ -7,6 +7,7 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/tjst-t/clabnoc/internal/capture"
 	"github.com/tjst-t/clabnoc/internal/docker"
 	"github.com/tjst-t/clabnoc/internal/frontend"
 	"github.com/tjst-t/clabnoc/internal/network"
@@ -14,8 +15,10 @@ import (
 
 // Server holds the API server dependencies.
 type Server struct {
-	Docker       docker.DockerClient
-	FaultManager *network.FaultManager
+	Docker         docker.DockerClient
+	FaultManager   *network.FaultManager
+	CaptureManager *capture.CaptureManager
+	VethResolver   capture.VethResolver
 }
 
 // NewRouter creates the HTTP router with all API routes.
@@ -37,6 +40,8 @@ func NewRouter(s *Server) http.Handler {
 		r.Get("/projects/{name}/links", s.listLinks)
 		r.Get("/projects/{name}/links/{id}", s.getLink)
 		r.Post("/projects/{name}/links/{id}/fault", s.injectFault)
+		r.Post("/projects/{name}/links/{id}/capture", s.captureAction)
+		r.Get("/projects/{name}/links/{id}/capture/download", s.captureDownload)
 		r.Get("/projects/{name}/stats", s.stats)
 		r.Get("/bpf-presets", s.listBPFPresets)
 		r.Get("/events", s.events)
