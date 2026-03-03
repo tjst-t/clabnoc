@@ -30,3 +30,74 @@ nodes:
     unit: 1
     size: 1
     role: server
+
+# ── Auto Management Network ──
+# Generates a collapsed mgmt bar showing all nodes' management connections
+auto_mgmt:
+  enabled: true
+  position: bottom
+  collapsed: true
+
+# ── External Nodes ──
+# Non-clab devices displayed in the topology
+external_nodes:
+  ntp:
+    label: NTP Server
+    description: Campus NTP service (stratum 2)
+    icon: service
+    interfaces:
+      - eth0
+    placement:
+      dc: dc1
+  dns:
+    label: DNS Server
+    description: Internal recursive DNS resolver
+    icon: service
+    interfaces:
+      - eth0
+    placement:
+      dc: dc1
+  oob-switch:
+    label: OOB Switch
+    description: Out-of-band management switch
+    icon: switch
+    interfaces:
+      - ge-0/0/0
+      - ge-0/0/1
+      - ge-0/0/2
+    placement:
+      dc: dc1
+      rack: rack1
+      rack_unit: 5
+      size: 1
+
+# ── External Networks ──
+# Network clouds and bars for external connectivity
+external_networks:
+  internet:
+    label: Internet
+    position: top
+  oob-mgmt:
+    label: OOB Management
+    position: bottom
+    dc: dc1
+
+# ── External Links ──
+# Connections between clab nodes, external nodes, and external networks
+external_links:
+  - a:
+      node: spine
+      interface: e1-48
+    z:
+      network: internet
+  - a:
+      external: oob-switch
+      interface: ge-0/0/0
+    z:
+      network: oob-mgmt
+  - a:
+      external: ntp
+      interface: eth0
+    z:
+      node: spine
+      interface: e1-47
