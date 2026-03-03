@@ -227,7 +227,7 @@ func ApplyConfig(topo *Topology, cfg *Config) {
 }
 
 // ValidateLayout checks for layout inconsistencies and returns warnings.
-// This should be called after ApplyConfig (or after Parse if no config).
+// This should be called after ApplyConfig and ApplyExternalConfig.
 func ValidateLayout(topo *Topology) []string {
 	var warnings []string
 
@@ -241,6 +241,18 @@ func ValidateLayout(topo *Topology) []string {
 			return u
 		}
 		return 42
+	}
+
+	// Build known DCs and racks from groups
+	knownDCs := map[string]bool{}
+	for _, dc := range topo.Groups.DCs {
+		knownDCs[dc] = true
+	}
+	knownRacks := map[string]bool{}
+	for _, racks := range topo.Groups.Racks {
+		for _, rack := range racks {
+			knownRacks[rack] = true
+		}
 	}
 
 	// Track occupied U ranges per rack: rack → list of (start, end, nodeName)
@@ -281,7 +293,94 @@ func ValidateLayout(topo *Topology) []string {
 		})
 	}
 
-	// Check: overlapping unit ranges within each rack
+	// Validate external nodes
+	for _, en := range topo.ExternalNodes {
+		g := en.Graph
+
+		// Check: DC exists in known DCs (only if specified)
+		if g.DC != "" && !knownDCs[g.DC] {
+			warnings = append(warnings,
+				fmt.Sprintf("external node %q: DC %q not found in topology", en.Name, g.DC))
+		}
+
+		// Check: rack exists in known racks (only if specified)
+		if g.Rack != "" && !knownRacks[g.Rack] {
+			warnings = append(warnings,
+				fmt.Sprintf("external node %q: rack %q not found in topology", en.Name, g.Rack))
+		}
+
+		// Rack-placed external nodes: check unit overlap
+		if g.Rack != "" && g.RackUnit > 0 {
+			maxU := getRackUnits(g.Rack)
+			unitStart := g.RackUnit
+			unitEnd := g.RackUnit + g.RackUnitSize - 1
+
+			if unitEnd > maxU {
+				warnings = append(warnings,
+					fmt.Sprintf("external node %q: unit range U%d–U%d exceeds rack %q height (%dU)",
+						en.Name, unitStart, unitEnd, g.Rack, maxU))
+			}
+
+			rackPlacements[g.Rack] = append(rackPlacements[g.Rack], placement{
+				start: unitStart,
+				end:   unitEnd,
+				node:  fmt.Sprintf("external:%s", en.Name),
+			})
+		}
+	}
+
+	// Validate external link endpoints
+	nodeNames := map[string]bool{}
+	for _, n := range topo.Nodes {
+		nodeNames[n.Name] = true
+	}
+	externalNodeNames := map[string]bool{}
+	externalNodeInterfaces := map[string]map[string]bool{}
+	for _, en := range topo.ExternalNodes {
+		externalNodeNames[en.Name] = true
+		ifSet := map[string]bool{}
+		for _, iface := range en.Interfaces {
+			ifSet[iface] = true
+		}
+		externalNodeInterfaces[en.Name] = ifSet
+	}
+	networkNames := map[string]bool{}
+	for _, net := range topo.ExternalNetworks {
+		networkNames[net.Name] = true
+	}
+
+	for _, el := range topo.ExternalLinks {
+		for _, side := range []struct {
+			label string
+			ep    ExternalEndpoint
+		}{{"A", el.A}, {"Z", el.Z}} {
+			ep := side.ep
+			if ep.Node != "" && !nodeNames[ep.Node] {
+				warnings = append(warnings,
+					fmt.Sprintf("external link %q: %s-side node %q not found", el.ID, side.label, ep.Node))
+			}
+			if ep.External != "" && !externalNodeNames[ep.External] {
+				warnings = append(warnings,
+					fmt.Sprintf("external link %q: %s-side external node %q not found", el.ID, side.label, ep.External))
+			}
+			if ep.Network != "" && !networkNames[ep.Network] {
+				warnings = append(warnings,
+					fmt.Sprintf("external link %q: %s-side network %q not found", el.ID, side.label, ep.Network))
+			}
+			// Check interface exists for external nodes
+			if ep.External != "" && ep.Interface != "" {
+				if ifSet, ok := externalNodeInterfaces[ep.External]; ok {
+					if !ifSet[ep.Interface] {
+						warnings = append(warnings,
+							fmt.Sprintf("external link %q: %s-side interface %q not found on external node %q",
+								el.ID, side.label, ep.Interface, ep.External))
+					}
+				}
+			}
+		}
+	}
+
+	// Check: overlapping unit ranges within each rack (includes both clab + external nodes)
 	for rack, placements := range rackPlacements {
 		for i := 0; i < len(placements); i++ {
 			for j := i + 1; j < len(placements); j++ {

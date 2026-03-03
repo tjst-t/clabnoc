@@ -677,6 +677,146 @@ external_networks:
 	}
 }
 
+func TestValidateLayoutExternalNodeDC(t *testing.T) {
+	topo := &Topology{
+		Nodes: []Node{
+			{Name: "sw1", Graph: GraphInfo{DC: "dc1", Rack: "rack1", RackUnit: 42, RackUnitSize: 1}},
+		},
+		ExternalNodes: []ExternalNode{
+			{Name: "ntp", Graph: GraphInfo{DC: "dc-unknown"}, External: true},
+		},
+		Groups: Groups{
+			DCs:       []string{"dc1"},
+			Racks:     map[string][]string{"dc1": {"rack1"}},
+			RackUnits: map[string]int{"rack1": 42},
+		},
+	}
+	warns := ValidateLayout(topo)
+	found := false
+	for _, w := range warns {
+		if contains(w, "DC") && contains(w, "not found") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected DC not found warning, got %v", warns)
+	}
+}
+
+func TestValidateLayoutExternalNodeRack(t *testing.T) {
+	topo := &Topology{
+		Nodes: []Node{
+			{Name: "sw1", Graph: GraphInfo{DC: "dc1", Rack: "rack1", RackUnit: 42, RackUnitSize: 1}},
+		},
+		ExternalNodes: []ExternalNode{
+			{Name: "oob", Graph: GraphInfo{DC: "dc1", Rack: "rack-unknown", RackUnit: 5, RackUnitSize: 1}, External: true},
+		},
+		Groups: Groups{
+			DCs:       []string{"dc1"},
+			Racks:     map[string][]string{"dc1": {"rack1"}},
+			RackUnits: map[string]int{"rack1": 42},
+		},
+	}
+	warns := ValidateLayout(topo)
+	found := false
+	for _, w := range warns {
+		if contains(w, "rack") && contains(w, "not found") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected rack not found warning, got %v", warns)
+	}
+}
+
+func TestValidateLayoutExternalOverlapWithClab(t *testing.T) {
+	topo := &Topology{
+		Nodes: []Node{
+			{Name: "sw1", Graph: GraphInfo{DC: "dc1", Rack: "rack1", RackUnit: 20, RackUnitSize: 1}},
+		},
+		ExternalNodes: []ExternalNode{
+			{Name: "oob", Graph: GraphInfo{DC: "dc1", Rack: "rack1", RackUnit: 20, RackUnitSize: 1}, External: true},
+		},
+		Groups: Groups{
+			DCs:       []string{"dc1"},
+			Racks:     map[string][]string{"dc1": {"rack1"}},
+			RackUnits: map[string]int{"rack1": 42},
+		},
+	}
+	warns := ValidateLayout(topo)
+	found := false
+	for _, w := range warns {
+		if contains(w, "overlap") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected overlap warning, got %v", warns)
+	}
+}
+
+func TestValidateLayoutExternalLinkRef(t *testing.T) {
+	topo := &Topology{
+		Nodes: []Node{
+			{Name: "sw1", Graph: GraphInfo{DC: "dc1", Rack: "rack1", RackUnit: 42, RackUnitSize: 1}},
+		},
+		ExternalNodes: []ExternalNode{
+			{Name: "ntp", Graph: GraphInfo{DC: "dc1"}, Interfaces: []string{"eth0"}, External: true},
+		},
+		ExternalNetworks: []ExternalNetwork{
+			{Name: "internet", Label: "Internet", Position: "top"},
+		},
+		ExternalLinks: []ExternalLink{
+			{ID: "ext:missing:e1__internet:", A: ExternalEndpoint{Node: "missing-node"}, Z: ExternalEndpoint{Network: "internet"}},
+			{ID: "ext:ntp:eth99__sw1:e1", A: ExternalEndpoint{External: "ntp", Interface: "eth99"}, Z: ExternalEndpoint{Node: "sw1"}},
+			{ID: "ext:sw1:e1__missing-net:", A: ExternalEndpoint{Node: "sw1"}, Z: ExternalEndpoint{Network: "missing-net"}},
+		},
+		Groups: Groups{
+			DCs:       []string{"dc1"},
+			Racks:     map[string][]string{"dc1": {"rack1"}},
+			RackUnits: map[string]int{"rack1": 42},
+		},
+	}
+	warns := ValidateLayout(topo)
+
+	// Should warn about missing node, missing interface, missing network
+	warnCount := 0
+	for _, w := range warns {
+		if contains(w, "not found") {
+			warnCount++
+		}
+	}
+	if warnCount < 3 {
+		t.Errorf("expected at least 3 'not found' warnings, got %d: %v", warnCount, warns)
+	}
+}
+
+func TestValidateLayoutExternalNodeExceedsRack(t *testing.T) {
+	topo := &Topology{
+		Nodes: []Node{
+			{Name: "sw1", Graph: GraphInfo{DC: "dc1", Rack: "rack1", RackUnit: 1, RackUnitSize: 1}},
+		},
+		ExternalNodes: []ExternalNode{
+			{Name: "big-ext", Graph: GraphInfo{DC: "dc1", Rack: "rack1", RackUnit: 40, RackUnitSize: 4}, External: true},
+		},
+		Groups: Groups{
+			DCs:       []string{"dc1"},
+			Racks:     map[string][]string{"dc1": {"rack1"}},
+			RackUnits: map[string]int{"rack1": 42},
+		},
+	}
+	warns := ValidateLayout(topo)
+	found := false
+	for _, w := range warns {
+		if contains(w, "exceeds") {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("expected exceeds warning, got %v", warns)
+	}
+}
+
 func TestRackUnitSizeLabel(t *testing.T) {
 	data := []byte(`{
 		"name": "size-test",
