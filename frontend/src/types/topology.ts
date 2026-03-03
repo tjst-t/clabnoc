@@ -11,6 +11,9 @@ export interface Topology {
   links: TopologyLink[];
   groups: Groups;
   warnings?: string[];
+  external_nodes?: ExternalNode[];
+  external_networks?: ExternalNetwork[];
+  external_links?: ExternalLink[];
 }
 
 export interface TopologyNode {
@@ -143,4 +146,38 @@ export interface PacketInfo {
   protocol: string;
   length: number;
   info: string;
+}
+
+// ── External entities ──
+
+export interface ExternalNode {
+  name: string;
+  label: string;
+  description?: string;
+  icon: string;
+  interfaces?: string[];
+  graph: GraphInfo;
+  external: true;
+}
+
+export interface ExternalNetwork {
+  name: string;
+  label: string;
+  position: 'top' | 'bottom';
+  dc?: string;
+  collapsed?: boolean;
+  link_count?: number;
+}
+
+export interface ExternalLink {
+  id: string;
+  a: ExternalEndpoint;
+  z: ExternalEndpoint;
+}
+
+export interface ExternalEndpoint {
+  node?: string;
+  external?: string;
+  network?: string;
+  interface?: string;
 }
