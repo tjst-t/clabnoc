@@ -81,6 +81,7 @@ type RackConfig struct {
 
 // NodeConfig holds node-level visualization configuration.
 type NodeConfig struct {
+	DC   string          `yaml:"dc"`   // DC-only placement (Services area) when rack is empty
 	Rack string          `yaml:"rack"`
 	Unit int             `yaml:"unit"`
 	Size int             `yaml:"size"` // default 1
@@ -189,9 +190,15 @@ func ApplyConfig(topo *Topology, cfg *Config) {
 
 		if nc.Rack != "" {
 			node.Graph.Rack = nc.Rack
-			if dc, found := rackDC[nc.Rack]; found {
+			if nc.DC != "" {
+				// Explicit DC overrides rack→DC lookup
+				node.Graph.DC = nc.DC
+			} else if dc, found := rackDC[nc.Rack]; found {
 				node.Graph.DC = dc
 			}
+		} else if nc.DC != "" {
+			// DC-only placement: Services area (no rack/unit)
+			node.Graph.DC = nc.DC
 		}
 		if nc.Unit != 0 {
 			node.Graph.RackUnit = nc.Unit
@@ -264,6 +271,11 @@ func ValidateLayout(topo *Topology) []string {
 
 	for _, node := range topo.Nodes {
 		g := node.Graph
+
+		// DC-only placement: Services area — valid, no warning needed
+		if g.DC != "" && g.Rack == "" && g.RackUnit == 0 {
+			continue
+		}
 
 		// Check: node missing rack placement
 		if g.DC == "" || g.Rack == "" || g.RackUnit == 0 {

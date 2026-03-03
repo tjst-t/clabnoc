@@ -460,6 +460,146 @@ func containsStr(s, sub string) bool {
 	return false
 }
 
+func TestApplyConfigDCOnly(t *testing.T) {
+	topo := &Topology{
+		Name: "test",
+		Nodes: []Node{
+			{
+				Name:   "dns",
+				Kind:   "linux",
+				Image:  "alpine:latest",
+				Labels: map[string]string{},
+				Graph:  GraphInfo{RackUnitSize: 1, Role: "server", Icon: "server"},
+			},
+			{
+				Name:   "ntp",
+				Kind:   "linux",
+				Image:  "alpine:latest",
+				Labels: map[string]string{},
+				Graph:  GraphInfo{RackUnitSize: 1, Role: "server", Icon: "server"},
+			},
+			{
+				Name:   "sw1",
+				Kind:   "linux",
+				Image:  "alpine:latest",
+				Labels: map[string]string{},
+				Graph:  GraphInfo{RackUnitSize: 1, Role: "switch", Icon: "switch"},
+			},
+		},
+		Links:  []Link{},
+		Groups: Groups{DCs: []string{}, Racks: map[string][]string{}},
+	}
+
+	cfg := &Config{
+		Racks: map[string]RackConfig{
+			"rack1": {DC: "dc1", Units: 42},
+		},
+		Nodes: map[string]NodeConfig{
+			"dns": {DC: "dc1", Role: "service"},
+			"ntp": {DC: "dc1", Role: "service"},
+			"sw1": {Rack: "rack1", Unit: 42, Size: 1, Role: "switch"},
+		},
+	}
+
+	ApplyConfig(topo, cfg)
+
+	// DC-only nodes: DC set, rack/unit empty
+	dns := topo.Nodes[0]
+	if dns.Graph.DC != "dc1" {
+		t.Errorf("dns DC = %q, want %q", dns.Graph.DC, "dc1")
+	}
+	if dns.Graph.Rack != "" {
+		t.Errorf("dns Rack = %q, want empty", dns.Graph.Rack)
+	}
+	if dns.Graph.RackUnit != 0 {
+		t.Errorf("dns RackUnit = %d, want 0", dns.Graph.RackUnit)
+	}
+	if dns.Graph.Role != "service" {
+		t.Errorf("dns Role = %q, want %q", dns.Graph.Role, "service")
+	}
+
+	ntp := topo.Nodes[1]
+	if ntp.Graph.DC != "dc1" {
+		t.Errorf("ntp DC = %q, want %q", ntp.Graph.DC, "dc1")
+	}
+
+	// Rack-placed node: still works as before
+	sw1 := topo.Nodes[2]
+	if sw1.Graph.DC != "dc1" {
+		t.Errorf("sw1 DC = %q, want %q", sw1.Graph.DC, "dc1")
+	}
+	if sw1.Graph.Rack != "rack1" {
+		t.Errorf("sw1 Rack = %q, want %q", sw1.Graph.Rack, "rack1")
+	}
+
+	// Groups should include dc1 with rack1, DC-only nodes contribute to DCs
+	if len(topo.Groups.DCs) != 1 || topo.Groups.DCs[0] != "dc1" {
+		t.Errorf("expected DCs = [dc1], got %v", topo.Groups.DCs)
+	}
+}
+
+func TestApplyConfigDCWithRackOverride(t *testing.T) {
+	topo := &Topology{
+		Name: "test",
+		Nodes: []Node{
+			{
+				Name:   "sw1",
+				Kind:   "linux",
+				Image:  "alpine:latest",
+				Labels: map[string]string{},
+				Graph:  GraphInfo{RackUnitSize: 1},
+			},
+		},
+		Links:  []Link{},
+		Groups: Groups{DCs: []string{}, Racks: map[string][]string{}},
+	}
+
+	cfg := &Config{
+		Racks: map[string]RackConfig{
+			"rack1": {DC: "dc-old", Units: 42},
+		},
+		Nodes: map[string]NodeConfig{
+			"sw1": {DC: "dc-override", Rack: "rack1", Unit: 42, Size: 1},
+		},
+	}
+
+	ApplyConfig(topo, cfg)
+
+	sw1 := topo.Nodes[0]
+	// Explicit DC should override rack→DC lookup
+	if sw1.Graph.DC != "dc-override" {
+		t.Errorf("sw1 DC = %q, want %q", sw1.Graph.DC, "dc-override")
+	}
+	if sw1.Graph.Rack != "rack1" {
+		t.Errorf("sw1 Rack = %q, want %q", sw1.Graph.Rack, "rack1")
+	}
+}
+
+func TestValidateLayoutDCOnlyNoWarning(t *testing.T) {
+	topo := &Topology{
+		Nodes: []Node{
+			{Name: "sw1", Graph: GraphInfo{DC: "dc1", Rack: "rack1", RackUnit: 42, RackUnitSize: 1}},
+			{Name: "dns", Graph: GraphInfo{DC: "dc1", Rack: "", RackUnit: 0, RackUnitSize: 1}},
+			{Name: "ntp", Graph: GraphInfo{DC: "dc1", Rack: "", RackUnit: 0, RackUnitSize: 1}},
+		},
+		Groups: Groups{
+			DCs:       []string{"dc1"},
+			Racks:     map[string][]string{"dc1": {"rack1"}},
+			RackUnits: map[string]int{"rack1": 42},
+		},
+	}
+	warns := ValidateLayout(topo)
+	// DC-only nodes should NOT generate warnings
+	for _, w := range warns {
+		if contains(w, "dns") || contains(w, "ntp") {
+			t.Errorf("unexpected warning for DC-only node: %q", w)
+		}
+	}
+	if len(warns) != 0 {
+		t.Errorf("expected no warnings, got %v", warns)
+	}
+}
+
 func TestLoadConfigFileExternal(t *testing.T) {
 	cfg, err := LoadConfigFile("../../testdata/sample-external.clabnoc.yml")
 	if err != nil {
