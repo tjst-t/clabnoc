@@ -78,6 +78,22 @@ topology:
       exec:
         - apk add --no-cache iproute2
 
+    # ── DNS Server (dc1 services area) ──
+    # Tests: DC-only placement → services area with DeviceFaceplate
+    dns:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache dnsmasq
+
+    # ── NTP Server (dc1 services area) ──
+    # Tests: DC-only placement → services area with DeviceFaceplate
+    ntp:
+      kind: linux
+      image: alpine:latest
+      exec:
+        - apk add --no-cache chrony
+
     # ── Hidden node ──
     # Tests: graph-hide label (should NOT appear in topology)
     infra:
