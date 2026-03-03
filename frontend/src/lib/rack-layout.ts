@@ -22,8 +22,8 @@ export const CABLE_LANE_SPACING = 6;
 
 // External entity constants
 export const SERVICES_AREA_HEIGHT = 40;
-export const NETWORK_CLOUD_HEIGHT = 32;
-export const NETWORK_BAR_HEIGHT = 24;
+export const NETWORK_CLOUD_HEIGHT = 40;
+export const NETWORK_BAR_HEIGHT = 28;
 export const EXTERNAL_NODE_WIDTH = 120;
 export const EXTERNAL_NODE_HEIGHT = 28;
 export const EXTERNAL_NODE_GAP = 16;
@@ -197,7 +197,7 @@ export function computeLayout(topo: Topology): LayoutResult {
   }
 
   const hasTopNetworks = topNetworks.length > 0;
-  const topNetworkPadding = hasTopNetworks ? NETWORK_CLOUD_HEIGHT + 20 : 0;
+  const topNetworkPadding = hasTopNetworks ? NETWORK_CLOUD_HEIGHT + 30 : 0;
 
   // ── 1. Collect all interfaces per node from links ──
   const nodeInterfaces = new Map<string, string[]>();
@@ -241,11 +241,12 @@ export function computeLayout(topo: Topology): LayoutResult {
     // Check for services area and bottom networks/bars in this DC
     const dcServices = servicesNodesByDC.get(dc) ?? [];
     const hasServicesArea = dcServices.length > 0;
-    const servicesAreaH = hasServicesArea ? SERVICES_AREA_HEIGHT + 10 : 0;
+    // Services area total vertical space: gap above + content + boundary padding + gap below
+    const servicesAreaH = hasServicesArea ? SERVICES_AREA_HEIGHT + 60 : 0;
 
     // Bottom networks within this DC
     const dcBottomNets = bottomNetworks.filter(n => n.dc === dc || !n.dc);
-    const bottomNetH = dcBottomNets.length > 0 ? (NETWORK_BAR_HEIGHT + 8) * dcBottomNets.length : 0;
+    const bottomNetH = dcBottomNets.length > 0 ? (NETWORK_BAR_HEIGHT + 12) * dcBottomNets.length + 4 : 0;
 
     // Find tallest rack in this DC to size the DC box and bottom-align racks
     const tallestRackH = dcRacks.reduce((max, rack) => {
@@ -292,7 +293,7 @@ export function computeLayout(topo: Topology): LayoutResult {
       ? dcRacks.length * RACK_WIDTH + (dcRacks.length - 1) * RACK_GAP + 60
       : RACK_WIDTH + 60;
     // DC height: racks + services area (below racks) + bottom networks + margins
-    const dcHeight = topPadding + tallestRackH + servicesAreaH + bottomNetH + 20;
+    const dcHeight = topPadding + tallestRackH + servicesAreaH + bottomNetH + 30;
 
     dcs.push({
       id: `dc:${dc}`,
@@ -306,7 +307,7 @@ export function computeLayout(topo: Topology): LayoutResult {
     // ── Services area: DC-only external nodes (below racks, above bottom networks) ──
     if (hasServicesArea) {
       const servicesStartX = dcXOffset + 30;
-      const servicesY = topPadding + tallestRackH + 12;
+      const servicesY = topPadding + tallestRackH + 30;
 
       for (let si = 0; si < dcServices.length; si++) {
         const en = dcServices[si]!;
@@ -326,11 +327,11 @@ export function computeLayout(topo: Topology): LayoutResult {
     }
 
     // ── Bottom networks within DC (below services area) ──
-    const bottomNetStartY = topPadding + tallestRackH + servicesAreaH + 8;
+    const bottomNetStartY = topPadding + tallestRackH + servicesAreaH + 12;
     for (let ni = 0; ni < dcBottomNets.length; ni++) {
       const net = dcBottomNets[ni]!;
       const netX = dcXOffset + 30;
-      const netY = bottomNetStartY + ni * (NETWORK_BAR_HEIGHT + 8);
+      const netY = bottomNetStartY + ni * (NETWORK_BAR_HEIGHT + 12);
       const netW = dcWidth - 60;
 
       externalNetworks.set(net.name, {
