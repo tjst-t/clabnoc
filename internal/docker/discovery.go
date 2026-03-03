@@ -85,10 +85,12 @@ func GetProjectTopologyWithConfig(ctx context.Context, cli DockerClient, project
 		return nil, fmt.Errorf("loading topology data: %w", err)
 	}
 
-	topo, err := topology.Parse(topoData)
+	raw, err := topology.ParseRaw(topoData)
 	if err != nil {
 		return nil, fmt.Errorf("parsing topology: %w", err)
 	}
+
+	topo := topology.Convert(raw)
 
 	var cfg *topology.Config
 
@@ -101,6 +103,7 @@ func GetProjectTopologyWithConfig(ctx context.Context, cli DockerClient, project
 			slog.Info("applying .clabnoc.yml config", "path", cfgPath)
 			cfg = loadedCfg
 			topology.ApplyConfig(topo, cfg)
+			topology.ApplyExternalConfig(topo, cfg, raw)
 		}
 	}
 
