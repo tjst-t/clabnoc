@@ -9,7 +9,7 @@ interface Props {
 
 export function ExternalDevice({ layout, selected, dimmed, onClick }: Props) {
   const borderColor = selected ? 'var(--noc-device-name-selected)' : EXTERNAL_NODE_COLOR.border;
-  const fillColor = selected ? 'var(--noc-device-selected-bg)' : 'rgba(127,140,141,0.04)';
+  const fillColor = selected ? 'var(--noc-device-selected-bg)' : EXTERNAL_NODE_COLOR.bg;
 
   const nameY = layout.height >= 36
     ? layout.y + layout.height - 6
@@ -19,7 +19,7 @@ export function ExternalDevice({ layout, selected, dimmed, onClick }: Props) {
     <g
       style={{
         cursor: 'pointer',
-        opacity: dimmed ? 0.15 : 0.85,
+        opacity: dimmed ? 0.15 : 1,
         transition: 'opacity 0.2s ease',
       }}
       onPointerDown={(e) => e.stopPropagation()}
@@ -28,7 +28,7 @@ export function ExternalDevice({ layout, selected, dimmed, onClick }: Props) {
         onClick();
       }}
     >
-      {/* Dashed border body — ghostly external device */}
+      {/* Dashed border body */}
       <rect
         x={layout.x}
         y={layout.y}
@@ -36,25 +36,25 @@ export function ExternalDevice({ layout, selected, dimmed, onClick }: Props) {
         height={layout.height}
         fill={fillColor}
         stroke={borderColor}
-        strokeWidth={selected ? 1.8 : 1}
+        strokeWidth={selected ? 2 : 1.2}
         strokeDasharray="4,3"
         rx={2}
       />
 
-      {/* External marker — hollow diamond instead of status LED */}
+      {/* External marker — hollow diamond */}
       <polygon
         points={`${layout.x + 7},${layout.y + layout.height / 2 - 3} ${layout.x + 10},${layout.y + layout.height / 2} ${layout.x + 7},${layout.y + layout.height / 2 + 3} ${layout.x + 4},${layout.y + layout.height / 2}`}
         fill="none"
-        stroke={EXTERNAL_NODE_COLOR.fill}
-        strokeWidth={0.8}
-        opacity={0.6}
+        stroke={borderColor}
+        strokeWidth={1}
+        opacity={0.85}
       />
 
       {/* Device label */}
       <text
         x={layout.x + 14}
         y={nameY}
-        fill={selected ? 'var(--noc-device-name-selected)' : 'var(--noc-text-dim)'}
+        fill={selected ? 'var(--noc-device-name-selected)' : 'var(--noc-device-name)'}
         fontSize={8}
         fontFamily="'JetBrains Mono', monospace"
         fontStyle="italic"

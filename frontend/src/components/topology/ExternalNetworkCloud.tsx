@@ -16,11 +16,10 @@ export function ExternalNetworkCloud({ layout, selected, dimmed, onClick }: Prop
   const cx = x + width / 2;
   const cy = y + height / 2;
 
-  const borderColor = selected ? 'var(--noc-device-name-selected)' : '#5a6a7e';
-  const fillColor = selected ? 'rgba(0,212,170,0.04)' : 'rgba(90,106,126,0.03)';
+  const borderColor = selected ? 'var(--noc-device-name-selected)' : '#7a8a9e';
+  const fillColor = selected ? 'rgba(0,212,170,0.06)' : 'rgba(90,106,126,0.05)';
 
   // Cloud path: three overlapping arcs forming a cloud silhouette
-  // Scaled to fit the layout dimensions
   const hw = width * 0.48;
   const hh = height * 0.38;
 
@@ -40,7 +39,7 @@ export function ExternalNetworkCloud({ layout, selected, dimmed, onClick }: Prop
     <g
       style={{
         cursor: 'pointer',
-        opacity: dimmed ? 0.12 : 0.8,
+        opacity: dimmed ? 0.15 : 1,
         transition: 'opacity 0.2s ease',
       }}
       onPointerDown={(e) => e.stopPropagation()}
@@ -53,7 +52,7 @@ export function ExternalNetworkCloud({ layout, selected, dimmed, onClick }: Prop
         d={cloudPath}
         fill={fillColor}
         stroke={borderColor}
-        strokeWidth={selected ? 1.5 : 0.8}
+        strokeWidth={selected ? 2 : 1.2}
         strokeDasharray="6,3"
       />
 
@@ -61,7 +60,7 @@ export function ExternalNetworkCloud({ layout, selected, dimmed, onClick }: Prop
       <text
         x={cx}
         y={cy + 2}
-        fill={selected ? 'var(--noc-device-name-selected)' : 'var(--noc-text-dim)'}
+        fill={selected ? 'var(--noc-device-name-selected)' : 'var(--noc-device-name)'}
         fontSize={9}
         fontFamily="'JetBrains Mono', monospace"
         textAnchor="middle"

@@ -13,7 +13,7 @@ interface Props {
 export function ServicesArea({ x, y, width, height, children }: Props) {
   return (
     <g>
-      {/* Boundary — barely visible dashed line */}
+      {/* Boundary — subtle dashed line */}
       <rect
         x={x - 4}
         y={y - 14}
@@ -21,10 +21,10 @@ export function ServicesArea({ x, y, width, height, children }: Props) {
         height={height + 18}
         fill="none"
         stroke="var(--noc-text-dim)"
-        strokeWidth={0.4}
+        strokeWidth={0.6}
         strokeDasharray="3,4"
         rx={2}
-        opacity={0.3}
+        opacity={0.5}
       />
 
       {/* Section label */}
@@ -32,10 +32,10 @@ export function ServicesArea({ x, y, width, height, children }: Props) {
         x={x - 2}
         y={y - 4}
         fill="var(--noc-text-dim)"
-        fontSize={6}
+        fontSize={7}
         fontFamily="'JetBrains Mono', monospace"
         letterSpacing="1.5px"
-        opacity={0.5}
+        opacity={0.7}
       >
         SERVICES
       </text>

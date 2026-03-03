@@ -8,6 +8,7 @@ interface Props {
   highlightedCableIds: Set<string>;
   faultedCableIds: Set<string>;
   rackMap: Map<string, RackLayout>;
+  cableLaneBaseY?: number;
   totalWidth?: number;
   totalHeight?: number;
   selectedLinkId: string | null;
@@ -30,6 +31,7 @@ const BackgroundCables = memo(function BackgroundCables({
   highlightedIds,
   faultedIds,
   rackMap,
+  cableLaneBaseY,
   onSelectLink,
   onContextMenuLink,
 }: {
@@ -37,6 +39,7 @@ const BackgroundCables = memo(function BackgroundCables({
   highlightedIds: Set<string>;
   faultedIds: Set<string>;
   rackMap: Map<string, RackLayout>;
+  cableLaneBaseY?: number;
   onSelectLink: (link: TopologyLink) => void;
   onContextMenuLink: (link: TopologyLink, x: number, y: number) => void;
 }) {
@@ -46,7 +49,7 @@ const BackgroundCables = memo(function BackgroundCables({
         // Skip cables that will be drawn in foreground tiers
         if (highlightedIds.has(cable.link.id) || faultedIds.has(cable.link.id)) return null;
 
-        const d = buildCablePath(cable, idx, rackMap);
+        const d = buildCablePath(cable, idx, rackMap, cableLaneBaseY);
         return (
           <g key={`bg-${cable.link.id}`}>
             {/* Background cable line */}
@@ -88,6 +91,7 @@ function ForegroundCable({
   cable,
   cableIndex,
   rackMap,
+  cableLaneBaseY,
   isSelected,
   onSelectLink,
   onContextMenuLink,
@@ -95,11 +99,12 @@ function ForegroundCable({
   cable: CableLayout;
   cableIndex: number;
   rackMap: Map<string, RackLayout>;
+  cableLaneBaseY?: number;
   isSelected: boolean;
   onSelectLink: (link: TopologyLink) => void;
   onContextMenuLink: (link: TopologyLink, x: number, y: number) => void;
 }) {
-  const d = buildCablePath(cable, cableIndex, rackMap);
+  const d = buildCablePath(cable, cableIndex, rackMap, cableLaneBaseY);
   const color = getCableColor(cable.link);
 
   return (
@@ -195,6 +200,7 @@ export function CableOverlay({
   highlightedCableIds,
   faultedCableIds,
   rackMap,
+  cableLaneBaseY,
   selectedLinkId,
   onSelectLink,
   onContextMenuLink,
@@ -219,6 +225,7 @@ export function CableOverlay({
         highlightedIds={highlightedCableIds}
         faultedIds={faultedCableIds}
         rackMap={rackMap}
+        cableLaneBaseY={cableLaneBaseY}
         onSelectLink={onSelectLink}
         onContextMenuLink={onContextMenuLink}
       />
@@ -231,6 +238,7 @@ export function CableOverlay({
             cable={cable}
             cableIndex={idx}
             rackMap={rackMap}
+            cableLaneBaseY={cableLaneBaseY}
             isSelected={cable.link.id === selectedLinkId}
             onSelectLink={onSelectLink}
             onContextMenuLink={onContextMenuLink}
@@ -246,6 +254,7 @@ export function CableOverlay({
             cable={cable}
             cableIndex={idx}
             rackMap={rackMap}
+            cableLaneBaseY={cableLaneBaseY}
             isSelected={cable.link.id === selectedLinkId}
             onSelectLink={onSelectLink}
             onContextMenuLink={onContextMenuLink}

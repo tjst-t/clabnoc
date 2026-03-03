@@ -14,8 +14,8 @@ interface Props {
 export function ExternalNetworkBar({ layout, selected, dimmed, onClick }: Props) {
   const { x, y, width, height, network } = layout;
 
-  const borderColor = selected ? 'var(--noc-device-name-selected)' : '#5a6a7e';
-  const fillColor = selected ? 'rgba(0,212,170,0.04)' : 'rgba(90,106,126,0.03)';
+  const borderColor = selected ? 'var(--noc-device-name-selected)' : '#7a8a9e';
+  const fillColor = selected ? 'rgba(0,212,170,0.06)' : 'rgba(90,106,126,0.05)';
   const isMgmt = network.name.startsWith('mgmt:');
   const dashArray = isMgmt ? '8,4' : '5,3';
 
@@ -23,7 +23,7 @@ export function ExternalNetworkBar({ layout, selected, dimmed, onClick }: Props)
     <g
       style={{
         cursor: 'pointer',
-        opacity: dimmed ? 0.12 : 0.8,
+        opacity: dimmed ? 0.15 : 1,
         transition: 'opacity 0.2s ease',
       }}
       onPointerDown={(e) => e.stopPropagation()}
@@ -40,7 +40,7 @@ export function ExternalNetworkBar({ layout, selected, dimmed, onClick }: Props)
         height={height}
         fill={fillColor}
         stroke={borderColor}
-        strokeWidth={selected ? 1.8 : isMgmt ? 1.5 : 1}
+        strokeWidth={selected ? 2 : isMgmt ? 1.5 : 1.2}
         strokeDasharray={dashArray}
         rx={3}
       />
@@ -49,7 +49,7 @@ export function ExternalNetworkBar({ layout, selected, dimmed, onClick }: Props)
       <text
         x={x + 10}
         y={y + height / 2 + 1}
-        fill={selected ? 'var(--noc-device-name-selected)' : 'var(--noc-text-dim)'}
+        fill={selected ? 'var(--noc-device-name-selected)' : 'var(--noc-device-name)'}
         fontSize={8}
         fontFamily="'JetBrains Mono', monospace"
         dominantBaseline="central"
@@ -65,9 +65,9 @@ export function ExternalNetworkBar({ layout, selected, dimmed, onClick }: Props)
             y={y + (height - 14) / 2}
             width={28}
             height={14}
-            fill="rgba(90,106,126,0.15)"
+            fill="rgba(90,106,126,0.20)"
             stroke={borderColor}
-            strokeWidth={0.6}
+            strokeWidth={0.8}
             rx={2}
           />
           <text

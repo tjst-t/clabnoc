@@ -39,7 +39,7 @@ export const ROLE_COLORS: Record<string, { border: string; bg: string; fill: str
   host:   { border: '#27ae60', bg: 'rgba(39,174,96,0.06)', fill: '#27ae60' },
 };
 
-export const EXTERNAL_NODE_COLOR = { border: '#7f8c8d', bg: 'rgba(127,140,141,0.06)', fill: '#7f8c8d' };
+export const EXTERNAL_NODE_COLOR = { border: '#8fa0a8', bg: 'rgba(143,160,168,0.10)', fill: '#8fa0a8' };
 
 export const STATUS_COLORS: Record<string, string> = {
   running: '#2ecc71',
@@ -154,6 +154,7 @@ export interface LayoutResult {
   externalNodes: Map<string, ExternalNodeLayout>;
   externalNetworks: Map<string, ExternalNetworkLayout>;
   externalCables: ExternalCableLayout[];
+  cableLaneBaseY: number;
   totalWidth: number;
   totalHeight: number;
 }
@@ -262,7 +263,8 @@ export function computeLayout(topo: Topology): LayoutResult {
       const rackH = rackUnits * U_HEIGHT + RACK_TOP_MARGIN + 10;
 
       // Bottom-align: shorter racks are pushed down so bottoms line up
-      const rackY = topPadding + servicesAreaH + (tallestRackH - rackH);
+      // (services area is rendered BELOW racks to keep cable lanes clear)
+      const rackY = topPadding + (tallestRackH - rackH);
       rackPositions.set(rackId, { x: rackX, y: rackY });
 
       racks.push({
@@ -289,7 +291,8 @@ export function computeLayout(topo: Topology): LayoutResult {
     const dcWidth = dcRacks.length > 0
       ? dcRacks.length * RACK_WIDTH + (dcRacks.length - 1) * RACK_GAP + 60
       : RACK_WIDTH + 60;
-    const dcHeight = tallestRackH + topPadding + servicesAreaH + bottomNetH + 20;
+    // DC height: racks + services area (below racks) + bottom networks + margins
+    const dcHeight = topPadding + tallestRackH + servicesAreaH + bottomNetH + 20;
 
     dcs.push({
       id: `dc:${dc}`,
@@ -300,10 +303,10 @@ export function computeLayout(topo: Topology): LayoutResult {
       height: dcHeight,
     });
 
-    // ── Services area: DC-only external nodes ──
+    // ── Services area: DC-only external nodes (below racks, above bottom networks) ──
     if (hasServicesArea) {
       const servicesStartX = dcXOffset + 30;
-      const servicesY = topPadding;
+      const servicesY = topPadding + tallestRackH + 12;
 
       for (let si = 0; si < dcServices.length; si++) {
         const en = dcServices[si]!;
@@ -322,8 +325,8 @@ export function computeLayout(topo: Topology): LayoutResult {
       }
     }
 
-    // ── Bottom networks within DC ──
-    const bottomNetStartY = topPadding + servicesAreaH + tallestRackH + 8;
+    // ── Bottom networks within DC (below services area) ──
+    const bottomNetStartY = topPadding + tallestRackH + servicesAreaH + 8;
     for (let ni = 0; ni < dcBottomNets.length; ni++) {
       const net = dcBottomNets[ni]!;
       const netX = dcXOffset + 30;
@@ -361,6 +364,13 @@ export function computeLayout(topo: Topology): LayoutResult {
         position: 'top',
       });
     }
+  }
+
+  // ── Compute dynamic cable lane base Y (just above the topmost rack) ──
+  let cableLaneBaseY = CABLE_LANE_BASE_Y;
+  if (racks.length > 0) {
+    const minRackY = Math.min(...racks.map(r => r.y));
+    cableLaneBaseY = minRackY - 10;
   }
 
   // ── 3. Collect nodes per rack_unit ──
@@ -537,6 +547,7 @@ export function computeLayout(topo: Topology): LayoutResult {
   return {
     dcs, racks, uMarkers: uMarkersMap, devices, ports, cables,
     externalNodes, externalNetworks, externalCables,
+    cableLaneBaseY,
     totalWidth, totalHeight,
   };
 }
@@ -577,7 +588,8 @@ function resolveEndpointPosition(
 export function buildCablePath(
   cable: CableLayout,
   cableIndex: number,
-  rackMap: Map<string, RackLayout>
+  rackMap: Map<string, RackLayout>,
+  laneBaseY: number = CABLE_LANE_BASE_Y,
 ): string {
   const x1 = cable.aPort.cx;
   const y1 = cable.aPort.cy;
@@ -594,11 +606,28 @@ export function buildCablePath(
   }
 
   // Different racks: go up to cable lane, across, then down
-  const laneY = CABLE_LANE_BASE_Y - cableIndex * 3;
+  const laneY = laneBaseY - cableIndex * CABLE_LANE_SPACING;
   return `M${x1},${y1} L${x1},${laneY} L${x2},${laneY} L${x2},${y2}`;
 }
 
-/** Build a simple line path for external cables (dashed). */
+/**
+ * Build orthogonal path for external cables (dashed).
+ * Uses L-shaped routing: vertical first, then horizontal.
+ * Falls back to straight line when endpoints are aligned.
+ */
 export function buildExternalCablePath(cable: ExternalCableLayout): string {
-  return `M${cable.ax},${cable.ay} L${cable.zx},${cable.zy}`;
+  const { ax, ay, zx, zy } = cable;
+
+  // Vertically aligned → straight vertical line
+  if (Math.abs(ax - zx) < 5) {
+    return `M${ax},${ay} L${zx},${zy}`;
+  }
+
+  // Horizontally aligned → straight horizontal line
+  if (Math.abs(ay - zy) < 5) {
+    return `M${ax},${ay} L${zx},${zy}`;
+  }
+
+  // L-shaped orthogonal: vertical to Z's Y level, then horizontal to Z
+  return `M${ax},${ay} L${ax},${zy} L${zx},${zy}`;
 }

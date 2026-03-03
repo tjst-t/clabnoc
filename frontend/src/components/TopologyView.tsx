@@ -422,6 +422,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
               highlightedCableIds={highlightedCableIds}
               faultedCableIds={faultedCableIds}
               rackMap={rackMap}
+              cableLaneBaseY={layout.cableLaneBaseY}
               totalWidth={layout.totalWidth}
               totalHeight={layout.totalHeight}
               selectedLinkId={selectedLinkId}
@@ -449,10 +450,11 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                       d={d}
                       fill="none"
                       stroke={EXTERNAL_LINK_COLOR}
-                      strokeWidth={(isHighlighted || isNetHighlighted) ? 1.5 : 0.6}
-                      strokeDasharray="5,4"
-                      opacity={(isHighlighted || isNetHighlighted) ? 0.7 : 0.3}
+                      strokeWidth={(isHighlighted || isNetHighlighted) ? 2 : 1}
+                      strokeDasharray="6,4"
+                      opacity={(isHighlighted || isNetHighlighted) ? 0.8 : 0.45}
                       strokeLinecap="round"
+                      strokeLinejoin="round"
                     />
                   </g>
                 );
