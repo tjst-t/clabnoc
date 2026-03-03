@@ -1,10 +1,13 @@
-import type { TopologyNode, TopologyLink, AccessMethod, ContainerStats } from '../types/topology';
+import type { TopologyNode, TopologyLink, AccessMethod, ContainerStats, ExternalNode, ExternalNetwork, Topology } from '../types/topology';
 import { formatBytes } from '../lib/format';
 
 interface Props {
   project: string | null;
   node: TopologyNode | null;
   link: TopologyLink | null;
+  externalNode?: ExternalNode | null;
+  externalNetwork?: ExternalNetwork | null;
+  topology?: Topology | null;
   onOpenTerminal: (node: string, type: 'exec' | 'ssh') => void;
   onNodeAction: (node: string, action: 'start' | 'stop' | 'restart') => void;
   onFaultAction: (linkId: string, action: 'up' | 'down' | 'clear_netem') => void;
@@ -22,6 +25,9 @@ export function DetailPanel({
   project,
   node,
   link,
+  externalNode,
+  externalNetwork,
+  topology,
   onOpenTerminal,
   onNodeAction,
   onFaultAction,
@@ -61,6 +67,10 @@ export function DetailPanel({
           onDownloadCapture={onDownloadCapture}
           isCapturing={capturingLinks?.has(link.id) ?? false}
         />
+      ) : externalNode ? (
+        <ExternalNodeContent node={externalNode} topology={topology} />
+      ) : externalNetwork ? (
+        <ExternalNetworkContent network={externalNetwork} topology={topology} />
       ) : (
         <EmptyContent />
       )}
@@ -303,6 +313,147 @@ function LinkContent({
               )}
             </div>
           </TuiSection>
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ─── External Node Content ─── */
+
+function ExternalNodeContent({
+  node,
+  topology,
+}: {
+  node: ExternalNode;
+  topology?: Topology | null;
+}) {
+  // Find connections from external_links
+  const connections = (topology?.external_links ?? []).filter(
+    (el) => el.a.external === node.name || el.z.external === node.name
+  );
+
+  return (
+    <>
+      <div className="tui-border-b px-3 py-1.5 flex items-center gap-2 text-xs shrink-0">
+        <span className="text-noc-text-dim">~</span>
+        <span className="text-noc-text-bright font-bold">{node.label || node.name}</span>
+        <span className="text-2xs text-noc-text-dim">[external]</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-3 py-2 space-y-3">
+          <TuiSection title="External Node">
+            <DetailRow label="Name" value={node.name} />
+            {node.label && <DetailRow label="Label" value={node.label} />}
+            {node.description && <DetailRow label="Desc" value={node.description} />}
+            <DetailRow label="Icon" value={node.icon} />
+            {node.graph.dc && <DetailRow label="DC" value={node.graph.dc} />}
+            {node.graph.rack && <DetailRow label="Rack" value={node.graph.rack} />}
+            {node.graph.rack_unit > 0 && <DetailRow label="Unit" value={`U${node.graph.rack_unit}`} />}
+          </TuiSection>
+
+          {node.interfaces && node.interfaces.length > 0 && (
+            <TuiSection title="Interfaces">
+              {node.interfaces.map((iface) => (
+                <div key={iface} className="text-2xs text-noc-cyan">{iface}</div>
+              ))}
+            </TuiSection>
+          )}
+
+          {connections.length > 0 && (
+            <TuiSection title="Connections">
+              {connections.map((el) => {
+                const isA = el.a.external === node.name;
+                const other = isA ? el.z : el.a;
+                const myIface = isA ? el.a.interface : el.z.interface;
+                const otherRef = other.node || other.external || other.network || '?';
+                return (
+                  <div key={el.id} className="text-2xs">
+                    <span className="text-noc-text-dim">{myIface || '-'}</span>
+                    {' -> '}
+                    <span className="text-noc-text">{otherRef}</span>
+                    {other.interface && (
+                      <span className="text-noc-text-dim"> ({other.interface})</span>
+                    )}
+                  </div>
+                );
+              })}
+            </TuiSection>
+          )}
+        </div>
+      </div>
+    </>
+  );
+}
+
+/* ─── External Network Content ─── */
+
+function ExternalNetworkContent({
+  network,
+  topology,
+}: {
+  network: ExternalNetwork;
+  topology?: Topology | null;
+}) {
+  // Find connections from external_links
+  const connections = (topology?.external_links ?? []).filter(
+    (el) => el.a.network === network.name || el.z.network === network.name
+  );
+
+  // For auto_mgmt collapsed, find connected nodes
+  const isMgmt = network.name.startsWith('mgmt:');
+  const mgmtNodes = isMgmt && network.collapsed && topology
+    ? topology.nodes.map((n) => ({ name: n.name, ip: n.mgmt_ipv4 })).filter((n) => n.ip)
+    : [];
+
+  return (
+    <>
+      <div className="tui-border-b px-3 py-1.5 flex items-center gap-2 text-xs shrink-0">
+        <span className="text-noc-text-dim">~</span>
+        <span className="text-noc-text-bright font-bold">{network.label}</span>
+        <span className="text-2xs text-noc-text-dim">[network]</span>
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="px-3 py-2 space-y-3">
+          <TuiSection title="Network">
+            <DetailRow label="Name" value={network.name} />
+            <DetailRow label="Position" value={network.position} />
+            {network.dc && <DetailRow label="DC" value={network.dc} />}
+            {network.collapsed && (
+              <DetailRow label="Collapsed" value={`${network.link_count ?? 0} connections`} valueClass="text-noc-cyan" />
+            )}
+          </TuiSection>
+
+          {connections.length > 0 && (
+            <TuiSection title="Connected Nodes">
+              {connections.map((el) => {
+                const isA = el.a.network === network.name;
+                const other = isA ? el.z : el.a;
+                const ref = other.node || other.external || '?';
+                return (
+                  <div key={el.id} className="text-2xs">
+                    <span className="text-noc-text">{ref}</span>
+                    {other.interface && (
+                      <span className="text-noc-text-dim"> ({other.interface})</span>
+                    )}
+                  </div>
+                );
+              })}
+            </TuiSection>
+          )}
+
+          {mgmtNodes.length > 0 && (
+            <TuiSection title="Management IPs">
+              {mgmtNodes.map((n) => (
+                <div key={n.name} className="text-2xs">
+                  <span className="text-noc-text">{n.name}</span>
+                  <span className="text-noc-text-dim"> {n.ip}</span>
+                </div>
+              ))}
+            </TuiSection>
+          )}
         </div>
       </div>
     </>

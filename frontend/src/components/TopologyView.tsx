@@ -1,8 +1,11 @@
 import { useMemo, useEffect, useCallback, useState } from 'react';
-import type { Topology, TopologyNode, TopologyLink } from '../types/topology';
+import type { Topology, TopologyNode, TopologyLink, ExternalNode, ExternalNetwork } from '../types/topology';
 import {
   computeLayout,
+  buildExternalCablePath,
   LINK_STATE_COLORS,
+  EXTERNAL_LINK_COLOR,
+  SERVICES_AREA_HEIGHT,
   type CableLayout,
   type PortLayout,
   type RackLayout,
@@ -12,12 +15,18 @@ import { DataCenter } from './topology/DataCenter';
 import { Rack } from './topology/Rack';
 import { DeviceFaceplate } from './topology/DeviceFaceplate';
 import { CableOverlay } from './topology/CableOverlay';
+import { ExternalDevice } from './topology/ExternalDevice';
+import { ExternalNetworkCloud } from './topology/ExternalNetworkCloud';
+import { ExternalNetworkBar } from './topology/ExternalNetworkBar';
+import { ServicesArea } from './topology/ServicesArea';
 
 interface Props {
   topology: Topology | null;
   onSelectNode: (node: TopologyNode | null) => void;
   onSelectLink: (link: TopologyLink | null) => void;
   onContextMenuLink: (link: TopologyLink, x: number, y: number) => void;
+  onSelectExternalNode?: (node: ExternalNode | null) => void;
+  onSelectExternalNetwork?: (network: ExternalNetwork | null) => void;
   searchQuery?: string;
 }
 
@@ -48,11 +57,13 @@ function validateAnnotations(topology: Topology): AnnotationError[] {
   return errors;
 }
 
-export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMenuLink, searchQuery }: Props) {
+export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMenuLink, onSelectExternalNode, onSelectExternalNetwork, searchQuery }: Props) {
   // Selection state: either a device or a specific port
   const [selectedDeviceName, setSelectedDeviceName] = useState<string | null>(null);
   const [selectedPortKey, setSelectedPortKey] = useState<string | null>(null);
   const [selectedLinkId, setSelectedLinkId] = useState<string | null>(null);
+  const [selectedExternalName, setSelectedExternalName] = useState<string | null>(null);
+  const [selectedNetworkName, setSelectedNetworkName] = useState<string | null>(null);
 
   const annotationErrors = useMemo(
     () => (topology ? validateAnnotations(topology) : []),
@@ -158,11 +169,11 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
     };
   }, [layout, selectedDeviceName, selectedPortKey, selectedLinkId]);
 
-  const hasSelection = selectedDeviceName !== null || selectedLinkId !== null;
+  const hasSelection = selectedDeviceName !== null || selectedLinkId !== null || selectedExternalName !== null || selectedNetworkName !== null;
 
-  // Search filter: compute set of matched node names
-  const searchMatchedNodes = useMemo(() => {
-    if (!searchQuery || !topology) return null;
+  // Search filter: compute set of matched node names (includes external nodes)
+  const { searchMatchedNodes, searchMatchedExternals } = useMemo(() => {
+    if (!searchQuery || !topology) return { searchMatchedNodes: null, searchMatchedExternals: null };
     const q = searchQuery.toLowerCase();
     const matched = new Set<string>();
     for (const node of topology.nodes) {
@@ -174,7 +185,16 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
         matched.add(node.name);
       }
     }
-    return matched;
+    const matchedExt = new Set<string>();
+    for (const en of topology.external_nodes ?? []) {
+      if (
+        en.name.toLowerCase().includes(q) ||
+        en.label.toLowerCase().includes(q)
+      ) {
+        matchedExt.add(en.name);
+      }
+    }
+    return { searchMatchedNodes: matched, searchMatchedExternals: matchedExt };
   }, [searchQuery, topology]);
 
   // ── Handlers ──
@@ -193,6 +213,8 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
       setSelectedDeviceName(node.name);
       setSelectedPortKey(null);
       setSelectedLinkId(null);
+      setSelectedExternalName(null);
+      setSelectedNetworkName(null);
       onSelectNode(node);
       onSelectLink(null);
     },
@@ -213,6 +235,8 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
       setSelectedDeviceName(port.node.name);
       setSelectedPortKey(port.key);
       setSelectedLinkId(null);
+      setSelectedExternalName(null);
+      setSelectedNetworkName(null);
       onSelectNode(port.node);
       onSelectLink(null);
     },
@@ -232,6 +256,8 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
       setSelectedLinkId(link.id);
       setSelectedDeviceName(null);
       setSelectedPortKey(null);
+      setSelectedExternalName(null);
+      setSelectedNetworkName(null);
       onSelectLink(link);
       onSelectNode(null);
     },
@@ -245,13 +271,57 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
     [onContextMenuLink]
   );
 
+  const handleExternalNodeClick = useCallback(
+    (en: ExternalNode) => {
+      if (selectedExternalName === en.name) {
+        setSelectedExternalName(null);
+        onSelectExternalNode?.(null);
+        return;
+      }
+      setSelectedDeviceName(null);
+      setSelectedPortKey(null);
+      setSelectedLinkId(null);
+      setSelectedNetworkName(null);
+      setSelectedExternalName(en.name);
+      onSelectNode(null);
+      onSelectLink(null);
+      onSelectExternalNode?.(en);
+      onSelectExternalNetwork?.(null);
+    },
+    [selectedExternalName, onSelectNode, onSelectLink, onSelectExternalNode, onSelectExternalNetwork]
+  );
+
+  const handleNetworkClick = useCallback(
+    (net: ExternalNetwork) => {
+      if (selectedNetworkName === net.name) {
+        setSelectedNetworkName(null);
+        onSelectExternalNetwork?.(null);
+        return;
+      }
+      setSelectedDeviceName(null);
+      setSelectedPortKey(null);
+      setSelectedLinkId(null);
+      setSelectedExternalName(null);
+      setSelectedNetworkName(net.name);
+      onSelectNode(null);
+      onSelectLink(null);
+      onSelectExternalNode?.(null);
+      onSelectExternalNetwork?.(net);
+    },
+    [selectedNetworkName, onSelectNode, onSelectLink, onSelectExternalNode, onSelectExternalNetwork]
+  );
+
   const handleBackgroundClick = useCallback(() => {
     setSelectedDeviceName(null);
     setSelectedPortKey(null);
     setSelectedLinkId(null);
+    setSelectedExternalName(null);
+    setSelectedNetworkName(null);
     onSelectNode(null);
     onSelectLink(null);
-  }, [onSelectNode, onSelectLink]);
+    onSelectExternalNode?.(null);
+    onSelectExternalNetwork?.(null);
+  }, [onSelectNode, onSelectLink, onSelectExternalNode, onSelectExternalNetwork]);
 
   // Group ports by device
   const portsByDevice = useMemo(() => {
@@ -359,6 +429,36 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
               onContextMenuLink={handleContextMenu}
             />
 
+            {/* External cables — dashed, grey, behind devices */}
+            <g>
+              {layout.externalCables.map((cable) => {
+                const d = buildExternalCablePath(cable);
+                const isHighlighted = selectedExternalName != null && (
+                  cable.link.a.external === selectedExternalName ||
+                  cable.link.z.external === selectedExternalName ||
+                  cable.link.a.node === selectedExternalName ||
+                  cable.link.z.node === selectedExternalName
+                );
+                const isNetHighlighted = selectedNetworkName != null && (
+                  cable.link.a.network === selectedNetworkName ||
+                  cable.link.z.network === selectedNetworkName
+                );
+                return (
+                  <g key={cable.link.id}>
+                    <path
+                      d={d}
+                      fill="none"
+                      stroke={EXTERNAL_LINK_COLOR}
+                      strokeWidth={(isHighlighted || isNetHighlighted) ? 1.5 : 0.6}
+                      strokeDasharray="5,4"
+                      opacity={(isHighlighted || isNetHighlighted) ? 0.7 : 0.3}
+                      strokeLinecap="round"
+                    />
+                  </g>
+                );
+              })}
+            </g>
+
             {/* Devices + embedded ports */}
             {Array.from(layout.devices.values()).map((device) => {
               const name = device.node.name;
@@ -382,6 +482,91 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                 />
               );
             })}
+
+            {/* External networks — top (clouds) */}
+            {Array.from(layout.externalNetworks.values())
+              .filter((nl) => nl.position === 'top')
+              .map((nl) => (
+                <ExternalNetworkCloud
+                  key={nl.network.name}
+                  layout={nl}
+                  selected={nl.network.name === selectedNetworkName}
+                  dimmed={hasSelection && nl.network.name !== selectedNetworkName}
+                  onClick={() => handleNetworkClick(nl.network)}
+                />
+              ))}
+
+            {/* External networks — bottom (bars) */}
+            {Array.from(layout.externalNetworks.values())
+              .filter((nl) => nl.position === 'bottom')
+              .map((nl) => (
+                <ExternalNetworkBar
+                  key={nl.network.name}
+                  layout={nl}
+                  selected={nl.network.name === selectedNetworkName}
+                  dimmed={hasSelection && nl.network.name !== selectedNetworkName}
+                  onClick={() => handleNetworkClick(nl.network)}
+                />
+              ))}
+
+            {/* External nodes — services area and rack-placed */}
+            {(() => {
+              // Group services area nodes by DC
+              const servicesGroups = new Map<string, typeof layout.externalNodes extends Map<string, infer V> ? V[] : never>();
+              for (const [, enl] of layout.externalNodes) {
+                if (enl.servicesArea) {
+                  const dc = enl.node.graph.dc || '_ungrouped';
+                  if (!servicesGroups.has(dc)) servicesGroups.set(dc, []);
+                  servicesGroups.get(dc)!.push(enl);
+                }
+              }
+
+              return (
+                <>
+                  {/* Services areas with grouped external nodes */}
+                  {Array.from(servicesGroups.entries()).map(([dc, nodes]) => {
+                    const minX = Math.min(...nodes.map(n => n.x));
+                    const maxX = Math.max(...nodes.map(n => n.x + n.width));
+                    const minY = Math.min(...nodes.map(n => n.y));
+                    return (
+                      <ServicesArea
+                        key={`services-${dc}`}
+                        x={minX}
+                        y={minY}
+                        width={maxX - minX}
+                        height={SERVICES_AREA_HEIGHT}
+                      >
+                        {nodes.map((enl) => (
+                          <ExternalDevice
+                            key={enl.node.name}
+                            layout={enl}
+                            selected={enl.node.name === selectedExternalName}
+                            dimmed={hasSelection && enl.node.name !== selectedExternalName}
+                            onClick={() => handleExternalNodeClick(enl.node)}
+                          />
+                        ))}
+                      </ServicesArea>
+                    );
+                  })}
+
+                  {/* Rack-placed external nodes */}
+                  {Array.from(layout.externalNodes.values())
+                    .filter((enl) => !enl.servicesArea)
+                    .map((enl) => {
+                      const searchDimmed = searchMatchedExternals !== null && !searchMatchedExternals.has(enl.node.name);
+                      return (
+                        <ExternalDevice
+                          key={enl.node.name}
+                          layout={enl}
+                          selected={enl.node.name === selectedExternalName}
+                          dimmed={(hasSelection && enl.node.name !== selectedExternalName) || searchDimmed}
+                          onClick={() => handleExternalNodeClick(enl.node)}
+                        />
+                      );
+                    })}
+                </>
+              );
+            })()}
           </svg>
         )}
       </div>
