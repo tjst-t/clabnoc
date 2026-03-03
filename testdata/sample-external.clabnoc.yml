@@ -1,0 +1,82 @@
+racks:
+  rack-a01:
+    dc: dc-a
+    units: 42
+  rack-a02:
+    dc: dc-a
+    units: 48
+
+nodes:
+  spine-sw-01:
+    rack: rack-a01
+    unit: 42
+    size: 1
+    role: spine
+  compute-01:
+    rack: rack-a01
+    unit: 39
+    size: 2
+    role: server
+
+auto_mgmt:
+  enabled: true
+  position: bottom
+  collapsed: true
+
+external_nodes:
+  ntp-server:
+    label: NTP Server
+    description: Campus NTP service
+    icon: service
+    interfaces:
+      - eth0
+    placement:
+      dc: dc-a
+  dns-server:
+    label: DNS Server
+    description: Internal DNS resolver
+    interfaces:
+      - eth0
+      - eth1
+    placement:
+      dc: dc-a
+  oob-switch:
+    label: OOB Switch
+    description: Out-of-band management switch
+    icon: switch
+    interfaces:
+      - ge-0/0/0
+      - ge-0/0/1
+      - ge-0/0/2
+    placement:
+      dc: dc-a
+      rack: rack-a01
+      rack_unit: 20
+      size: 1
+
+external_networks:
+  internet:
+    label: Internet
+    position: top
+  oob-mgmt:
+    label: OOB Management
+    position: bottom
+    dc: dc-a
+
+external_links:
+  - a:
+      node: spine-sw-01
+      interface: e1-48
+    z:
+      network: internet
+  - a:
+      external: oob-switch
+      interface: ge-0/0/0
+    z:
+      network: oob-mgmt
+  - a:
+      external: ntp-server
+      interface: eth0
+    z:
+      node: compute-01
+      interface: eth2

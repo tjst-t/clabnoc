@@ -460,6 +460,223 @@ func containsStr(s, sub string) bool {
 	return false
 }
 
+func TestLoadConfigFileExternal(t *testing.T) {
+	cfg, err := LoadConfigFile("../../testdata/sample-external.clabnoc.yml")
+	if err != nil {
+		t.Fatalf("LoadConfigFile failed: %v", err)
+	}
+
+	// Check auto_mgmt
+	if cfg.AutoMgmt == nil {
+		t.Fatal("auto_mgmt is nil")
+	}
+	if !cfg.AutoMgmt.Enabled {
+		t.Error("auto_mgmt.enabled should be true")
+	}
+	if cfg.AutoMgmt.Position != "bottom" {
+		t.Errorf("auto_mgmt.position = %q, want %q", cfg.AutoMgmt.Position, "bottom")
+	}
+	if !cfg.AutoMgmt.Collapsed {
+		t.Error("auto_mgmt.collapsed should be true")
+	}
+
+	// Check external_nodes
+	if len(cfg.ExternalNodes) != 3 {
+		t.Fatalf("expected 3 external_nodes, got %d", len(cfg.ExternalNodes))
+	}
+
+	ntp := cfg.ExternalNodes["ntp-server"]
+	if ntp.Label != "NTP Server" {
+		t.Errorf("ntp-server label = %q, want %q", ntp.Label, "NTP Server")
+	}
+	if ntp.Icon != "service" {
+		t.Errorf("ntp-server icon = %q, want %q", ntp.Icon, "service")
+	}
+	if ntp.Placement.DC != "dc-a" {
+		t.Errorf("ntp-server placement.dc = %q, want %q", ntp.Placement.DC, "dc-a")
+	}
+	if ntp.Placement.Size != 1 {
+		t.Errorf("ntp-server placement.size = %d, want %d", ntp.Placement.Size, 1)
+	}
+	if len(ntp.Interfaces) != 1 || ntp.Interfaces[0] != "eth0" {
+		t.Errorf("ntp-server interfaces = %v, want [eth0]", ntp.Interfaces)
+	}
+
+	oob := cfg.ExternalNodes["oob-switch"]
+	if oob.Icon != "switch" {
+		t.Errorf("oob-switch icon = %q, want %q", oob.Icon, "switch")
+	}
+	if oob.Placement.Rack != "rack-a01" {
+		t.Errorf("oob-switch placement.rack = %q, want %q", oob.Placement.Rack, "rack-a01")
+	}
+	if oob.Placement.RackUnit != 20 {
+		t.Errorf("oob-switch placement.rack_unit = %d, want %d", oob.Placement.RackUnit, 20)
+	}
+
+	// Check external_networks
+	if len(cfg.ExternalNetworks) != 2 {
+		t.Fatalf("expected 2 external_networks, got %d", len(cfg.ExternalNetworks))
+	}
+
+	internet := cfg.ExternalNetworks["internet"]
+	if internet.Label != "Internet" {
+		t.Errorf("internet label = %q, want %q", internet.Label, "Internet")
+	}
+	if internet.Position != "top" {
+		t.Errorf("internet position = %q, want %q", internet.Position, "top")
+	}
+
+	oobMgmt := cfg.ExternalNetworks["oob-mgmt"]
+	if oobMgmt.DC != "dc-a" {
+		t.Errorf("oob-mgmt dc = %q, want %q", oobMgmt.DC, "dc-a")
+	}
+
+	// Check external_links
+	if len(cfg.ExternalLinks) != 3 {
+		t.Fatalf("expected 3 external_links, got %d", len(cfg.ExternalLinks))
+	}
+
+	// Link 1: node → network
+	link1 := cfg.ExternalLinks[0]
+	if link1.A.Node != "spine-sw-01" {
+		t.Errorf("link1 A.Node = %q, want %q", link1.A.Node, "spine-sw-01")
+	}
+	if link1.Z.Network != "internet" {
+		t.Errorf("link1 Z.Network = %q, want %q", link1.Z.Network, "internet")
+	}
+
+	// Link 2: external → network
+	link2 := cfg.ExternalLinks[1]
+	if link2.A.External != "oob-switch" {
+		t.Errorf("link2 A.External = %q, want %q", link2.A.External, "oob-switch")
+	}
+
+	// Link 3: external → node
+	link3 := cfg.ExternalLinks[2]
+	if link3.A.External != "ntp-server" {
+		t.Errorf("link3 A.External = %q, want %q", link3.A.External, "ntp-server")
+	}
+	if link3.Z.Node != "compute-01" {
+		t.Errorf("link3 Z.Node = %q, want %q", link3.Z.Node, "compute-01")
+	}
+}
+
+func TestLoadConfigFileAutoMgmt(t *testing.T) {
+	tmpDir := t.TempDir()
+
+	t.Run("defaults", func(t *testing.T) {
+		cfgPath := filepath.Join(tmpDir, "mgmt-defaults.yml")
+		content := []byte(`
+auto_mgmt:
+  enabled: true
+`)
+		if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := LoadConfigFile(cfgPath)
+		if err != nil {
+			t.Fatalf("LoadConfigFile failed: %v", err)
+		}
+		if cfg.AutoMgmt == nil {
+			t.Fatal("auto_mgmt is nil")
+		}
+		if cfg.AutoMgmt.Position != "bottom" {
+			t.Errorf("position = %q, want %q", cfg.AutoMgmt.Position, "bottom")
+		}
+	})
+
+	t.Run("disabled", func(t *testing.T) {
+		cfgPath := filepath.Join(tmpDir, "mgmt-disabled.yml")
+		content := []byte(`
+auto_mgmt:
+  enabled: false
+`)
+		if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := LoadConfigFile(cfgPath)
+		if err != nil {
+			t.Fatalf("LoadConfigFile failed: %v", err)
+		}
+		if cfg.AutoMgmt == nil {
+			t.Fatal("auto_mgmt is nil")
+		}
+		if cfg.AutoMgmt.Enabled {
+			t.Error("expected enabled=false")
+		}
+	})
+
+	t.Run("no auto_mgmt", func(t *testing.T) {
+		cfgPath := filepath.Join(tmpDir, "no-mgmt.yml")
+		content := []byte(`
+racks:
+  rack-01:
+    dc: dc1
+`)
+		if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+			t.Fatal(err)
+		}
+		cfg, err := LoadConfigFile(cfgPath)
+		if err != nil {
+			t.Fatalf("LoadConfigFile failed: %v", err)
+		}
+		if cfg.AutoMgmt != nil {
+			t.Error("auto_mgmt should be nil when not specified")
+		}
+	})
+}
+
+func TestExternalNodeDefaults(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfgPath := filepath.Join(tmpDir, "external-defaults.yml")
+	content := []byte(`
+external_nodes:
+  svc1:
+    label: Service 1
+    placement:
+      dc: dc1
+`)
+	if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("LoadConfigFile failed: %v", err)
+	}
+
+	svc := cfg.ExternalNodes["svc1"]
+	if svc.Icon != "service" {
+		t.Errorf("icon default = %q, want %q", svc.Icon, "service")
+	}
+	if svc.Placement.Size != 1 {
+		t.Errorf("size default = %d, want %d", svc.Placement.Size, 1)
+	}
+}
+
+func TestExternalNetworkDefaults(t *testing.T) {
+	tmpDir := t.TempDir()
+	cfgPath := filepath.Join(tmpDir, "network-defaults.yml")
+	content := []byte(`
+external_networks:
+  wan:
+    label: WAN
+`)
+	if err := os.WriteFile(cfgPath, content, 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	cfg, err := LoadConfigFile(cfgPath)
+	if err != nil {
+		t.Fatalf("LoadConfigFile failed: %v", err)
+	}
+
+	wan := cfg.ExternalNetworks["wan"]
+	if wan.Position != "bottom" {
+		t.Errorf("position default = %q, want %q", wan.Position, "bottom")
+	}
+}
+
 func TestRackUnitSizeLabel(t *testing.T) {
 	data := []byte(`{
 		"name": "size-test",

@@ -12,9 +12,60 @@ import (
 
 // Config represents .clabnoc.yml configuration.
 type Config struct {
-	Racks        map[string]RackConfig `yaml:"racks"`
-	KindDefaults map[string]KindConfig `yaml:"kind_defaults"`
-	Nodes        map[string]NodeConfig `yaml:"nodes"`
+	Racks            map[string]RackConfig            `yaml:"racks"`
+	KindDefaults     map[string]KindConfig            `yaml:"kind_defaults"`
+	Nodes            map[string]NodeConfig            `yaml:"nodes"`
+	AutoMgmt         *AutoMgmtConfig                  `yaml:"auto_mgmt"`
+	ExternalNodes    map[string]ExternalNodeConfig     `yaml:"external_nodes"`
+	ExternalNetworks map[string]ExternalNetworkConfig  `yaml:"external_networks"`
+	ExternalLinks    []ExternalLinkConfig              `yaml:"external_links"`
+}
+
+// AutoMgmtConfig controls auto-generation of management network display.
+type AutoMgmtConfig struct {
+	Enabled   bool   `yaml:"enabled"`
+	Position  string `yaml:"position"`  // "top" or "bottom" (default "bottom")
+	Collapsed bool   `yaml:"collapsed"` // default true
+}
+
+// ExternalNodeConfig defines a non-clab device for visualization.
+type ExternalNodeConfig struct {
+	Label       string                    `yaml:"label"`
+	Description string                    `yaml:"description"`
+	Icon        string                    `yaml:"icon"`       // default "service"
+	Interfaces  []string                  `yaml:"interfaces"`
+	Placement   ExternalNodePlacement     `yaml:"placement"`
+}
+
+// ExternalNodePlacement defines where an external node is placed.
+type ExternalNodePlacement struct {
+	DC       string `yaml:"dc"`
+	Rack     string `yaml:"rack"`
+	RackUnit int    `yaml:"rack_unit"`
+	Size     int    `yaml:"size"` // default 1
+}
+
+// ExternalNetworkConfig defines an external network (Internet, WAN, OOB, etc.).
+type ExternalNetworkConfig struct {
+	Label    string `yaml:"label"`
+	Position string `yaml:"position"` // "top" or "bottom"
+	DC       string `yaml:"dc"`
+}
+
+// ExternalLinkConfig defines a connection between any combination of clab nodes,
+// external nodes, and external networks.
+type ExternalLinkConfig struct {
+	A ExternalLinkEndpointConfig `yaml:"a"`
+	Z ExternalLinkEndpointConfig `yaml:"z"`
+}
+
+// ExternalLinkEndpointConfig identifies one side of an external link.
+// Exactly one of Node, External, or Network must be set.
+type ExternalLinkEndpointConfig struct {
+	Node      string `yaml:"node"`
+	External  string `yaml:"external"`
+	Network   string `yaml:"network"`
+	Interface string `yaml:"interface"`
 }
 
 // KindConfig holds kind-level configuration overrides.
@@ -82,6 +133,33 @@ func LoadConfigFile(path string) (*Config, error) {
 		if node.Size == 0 {
 			node.Size = 1
 			cfg.Nodes[name] = node
+		}
+	}
+
+	// Apply defaults for auto_mgmt
+	if cfg.AutoMgmt != nil {
+		if cfg.AutoMgmt.Position == "" {
+			cfg.AutoMgmt.Position = "bottom"
+		}
+	}
+
+	// Apply defaults for external nodes
+	for name, en := range cfg.ExternalNodes {
+		if en.Icon == "" {
+			en.Icon = "service"
+			cfg.ExternalNodes[name] = en
+		}
+		if en.Placement.Size == 0 {
+			en.Placement.Size = 1
+			cfg.ExternalNodes[name] = en
+		}
+	}
+
+	// Apply defaults for external networks
+	for name, net := range cfg.ExternalNetworks {
+		if net.Position == "" {
+			net.Position = "bottom"
+			cfg.ExternalNetworks[name] = net
 		}
 	}
 
