@@ -7,6 +7,7 @@ import {
   EXTERNAL_LINK_COLOR,
   SERVICES_AREA_HEIGHT,
   type CableLayout,
+  type DeviceLayout,
   type PortLayout,
   type RackLayout,
 } from '../lib/rack-layout';
@@ -48,6 +49,8 @@ function validateAnnotations(topology: Topology): AnnotationError[] {
   for (const node of topology.nodes) {
     const missing: string[] = [];
     if (!node.graph.dc) missing.push('graph-dc');
+    // DC-only nodes (Services area placement) — no rack/unit needed
+    if (node.graph.dc && !node.graph.rack) continue;
     if (!node.graph.rack) missing.push('graph-rack');
     if (!node.graph.rack_unit) missing.push('graph-rack-unit');
     if (missing.length > 0) {
@@ -511,25 +514,48 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                 />
               ))}
 
-            {/* External nodes — services area and rack-placed */}
+            {/* External nodes + DC-only clab nodes — services area and rack-placed */}
             {(() => {
-              // Group services area nodes by DC
-              const servicesGroups = new Map<string, typeof layout.externalNodes extends Map<string, infer V> ? V[] : never>();
+              // Group services area external nodes by DC
+              const servicesExtGroups = new Map<string, typeof layout.externalNodes extends Map<string, infer V> ? V[] : never>();
               for (const [, enl] of layout.externalNodes) {
                 if (enl.servicesArea) {
                   const dc = enl.node.graph.dc || '_ungrouped';
-                  if (!servicesGroups.has(dc)) servicesGroups.set(dc, []);
-                  servicesGroups.get(dc)!.push(enl);
+                  if (!servicesExtGroups.has(dc)) servicesExtGroups.set(dc, []);
+                  servicesExtGroups.get(dc)!.push(enl);
                 }
               }
 
+              // Group services area clab nodes (rackId === null) by DC
+              const servicesClabGroups = new Map<string, DeviceLayout[]>();
+              for (const [, device] of layout.devices) {
+                if (device.rackId === null) {
+                  const dc = device.node.graph.dc || '_ungrouped';
+                  if (!servicesClabGroups.has(dc)) servicesClabGroups.set(dc, []);
+                  servicesClabGroups.get(dc)!.push(device);
+                }
+              }
+
+              // All DCs that have services area content
+              const allServicesDCs = new Set<string>([
+                ...servicesExtGroups.keys(),
+                ...servicesClabGroups.keys(),
+              ]);
+
               return (
                 <>
-                  {/* Services areas with grouped external nodes */}
-                  {Array.from(servicesGroups.entries()).map(([dc, nodes]) => {
-                    const minX = Math.min(...nodes.map(n => n.x));
-                    const maxX = Math.max(...nodes.map(n => n.x + n.width));
-                    const minY = Math.min(...nodes.map(n => n.y));
+                  {/* Services areas with grouped nodes */}
+                  {Array.from(allServicesDCs).map((dc) => {
+                    const extNodes = servicesExtGroups.get(dc) ?? [];
+                    const clabDevices = servicesClabGroups.get(dc) ?? [];
+                    const allItems = [
+                      ...extNodes.map(n => ({ x: n.x, y: n.y, w: n.width })),
+                      ...clabDevices.map(d => ({ x: d.x, y: d.y, w: d.width })),
+                    ];
+                    if (allItems.length === 0) return null;
+                    const minX = Math.min(...allItems.map(n => n.x));
+                    const maxX = Math.max(...allItems.map(n => n.x + n.w));
+                    const minY = Math.min(...allItems.map(n => n.y));
                     return (
                       <ServicesArea
                         key={`services-${dc}`}
@@ -538,7 +564,7 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                         width={maxX - minX}
                         height={SERVICES_AREA_HEIGHT}
                       >
-                        {nodes.map((enl) => (
+                        {extNodes.map((enl) => (
                           <ExternalDevice
                             key={enl.node.name}
                             layout={enl}
@@ -547,6 +573,27 @@ export function TopologyView({ topology, onSelectNode, onSelectLink, onContextMe
                             onClick={() => handleExternalNodeClick(enl.node)}
                           />
                         ))}
+                        {clabDevices.map((device) => {
+                          const name = device.node.name;
+                          const selectionDimmed = hasSelection
+                            && !relatedDevices.has(name)
+                            && !faultedDevices.has(name);
+                          const searchDimmedDev = searchMatchedNodes !== null && !searchMatchedNodes.has(name);
+                          return (
+                            <DeviceFaceplate
+                              key={name}
+                              device={device}
+                              ports={portsByDevice.get(name) ?? []}
+                              selected={name === selectedDeviceName}
+                              dimmed={selectionDimmed || searchDimmedDev}
+                              highlightedPorts={highlightedPorts}
+                              cableColorMap={cableColorMap}
+                              faultedPortColors={faultedPortColors}
+                              onClick={() => handleDeviceClick(device.node)}
+                              onPortClick={handlePortClick}
+                            />
+                          );
+                        })}
                       </ServicesArea>
                     );
                   })}

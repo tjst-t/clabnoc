@@ -35,8 +35,9 @@ export const ROLE_COLORS: Record<string, { border: string; bg: string; fill: str
   router: { border: '#2980b9', bg: 'rgba(41,128,185,0.08)', fill: '#2980b9' },
   switch: { border: '#2980b9', bg: 'rgba(41,128,185,0.08)', fill: '#2980b9' },
   server: { border: '#27ae60', bg: 'rgba(39,174,96,0.06)', fill: '#27ae60' },
-  bmc:    { border: '#8e44ad', bg: 'rgba(142,68,173,0.08)', fill: '#8e44ad' },
-  host:   { border: '#27ae60', bg: 'rgba(39,174,96,0.06)', fill: '#27ae60' },
+  bmc:     { border: '#8e44ad', bg: 'rgba(142,68,173,0.08)', fill: '#8e44ad' },
+  host:    { border: '#27ae60', bg: 'rgba(39,174,96,0.06)', fill: '#27ae60' },
+  service: { border: '#8e44ad', bg: 'rgba(142,68,173,0.08)', fill: '#8e44ad' },
 };
 
 export const EXTERNAL_NODE_COLOR = { border: '#8fa0a8', bg: 'rgba(143,160,168,0.10)', fill: '#8fa0a8' };
@@ -196,6 +197,9 @@ export function computeLayout(topo: Topology): LayoutResult {
     }
   }
 
+  // DC-only clab nodes (services area) per DC
+  const servicesClabNodesByDC = new Map<string, TopologyNode[]>();
+
   const hasTopNetworks = topNetworks.length > 0;
   const topNetworkPadding = hasTopNetworks ? NETWORK_CLOUD_HEIGHT + 30 : 0;
 
@@ -240,7 +244,9 @@ export function computeLayout(topo: Topology): LayoutResult {
 
     // Check for services area and bottom networks/bars in this DC
     const dcServices = servicesNodesByDC.get(dc) ?? [];
-    const hasServicesArea = dcServices.length > 0;
+    const dcClabServices = servicesClabNodesByDC.get(dc) ?? [];
+    const totalServicesCount = dcServices.length + dcClabServices.length;
+    const hasServicesArea = totalServicesCount > 0;
     // Services area total vertical space: gap above + content + boundary padding + gap below
     const servicesAreaH = hasServicesArea ? SERVICES_AREA_HEIGHT + 60 : 0;
 
@@ -304,7 +310,7 @@ export function computeLayout(topo: Topology): LayoutResult {
       height: dcHeight,
     });
 
-    // ── Services area: DC-only external nodes (below racks, above bottom networks) ──
+    // ── Services area: DC-only external + clab nodes (below racks, above bottom networks) ──
     if (hasServicesArea) {
       const servicesStartX = dcXOffset + 30;
       const servicesY = topPadding + tallestRackH + 30;
@@ -323,6 +329,48 @@ export function computeLayout(topo: Topology): LayoutResult {
           rackId: null,
           servicesArea: true,
         });
+      }
+
+      // DC-only clab nodes: placed after external nodes in the services area
+      const clabServicesStartX = servicesStartX + dcServices.length * (EXTERNAL_NODE_WIDTH + EXTERNAL_NODE_GAP);
+      for (let ci = 0; ci < dcClabServices.length; ci++) {
+        const node = dcClabServices[ci]!;
+        const deviceX = clabServicesStartX + ci * (EXTERNAL_NODE_WIDTH + EXTERNAL_NODE_GAP);
+        const deviceY = servicesY;
+        const role = node.graph.role || 'service';
+        const devW = EXTERNAL_NODE_WIDTH;
+        const devH = EXTERNAL_NODE_HEIGHT;
+
+        devices.set(node.name, {
+          node,
+          x: deviceX,
+          y: deviceY,
+          width: devW,
+          height: devH,
+          unitSize: 1,
+          rackId: null,
+          role,
+        });
+
+        // Ports for services area clab nodes
+        const interfaces = nodeInterfaces.get(node.name);
+        if (interfaces && interfaces.length > 0) {
+          const totalPortsWidth = interfaces.length * (PORT_W + PORT_GAP) - PORT_GAP;
+          const startPX = deviceX + devW - totalPortsWidth - 6;
+          for (let pi = 0; pi < interfaces.length; pi++) {
+            const iface = interfaces[pi]!;
+            const pk = portKey(node.name, iface);
+            const state = portStates.get(pk) ?? 'up';
+            const px = startPX + pi * (PORT_W + PORT_GAP);
+            const py = deviceY + Math.floor((devH - PORT_H) / 2);
+            ports.set(pk, {
+              key: pk, node, iface,
+              x: px, y: py, w: PORT_W, h: PORT_H,
+              cx: px + PORT_W / 2, cy: py + PORT_H / 2,
+              role, state,
+            });
+          }
+        }
       }
     }
 
@@ -389,6 +437,11 @@ export function computeLayout(topo: Topology): LayoutResult {
       const unit = g.rack_unit || 1;
       if (!unitMap.has(unit)) unitMap.set(unit, []);
       unitMap.get(unit)!.push(node);
+    } else if (g.dc && !g.rack) {
+      // DC-only: Services area placement
+      const list = servicesClabNodesByDC.get(g.dc) ?? [];
+      list.push(node);
+      servicesClabNodesByDC.set(g.dc, list);
     } else {
       ungroupedNodes.push(node);
     }
@@ -398,6 +451,10 @@ export function computeLayout(topo: Topology): LayoutResult {
   for (const node of topo.nodes) {
     const g = node.graph;
     const role = g.role || 'host';
+
+    // DC-only clab nodes are already placed in the services area above
+    if (g.dc && !g.rack) continue;
+
     let rackId: string | null = null;
     let deviceX: number;
     let deviceY: number;
