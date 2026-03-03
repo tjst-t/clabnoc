@@ -64,11 +64,14 @@ type RawEndpoint struct {
 
 // Topology is the processed topology ready for API responses.
 type Topology struct {
-	Name     string            `json:"name"`
-	Nodes    []Node            `json:"nodes"`
-	Links    []Link            `json:"links"`
-	Groups   Groups            `json:"groups"`
-	Warnings []string          `json:"warnings,omitempty"`
+	Name             string            `json:"name"`
+	Nodes            []Node            `json:"nodes"`
+	Links            []Link            `json:"links"`
+	Groups           Groups            `json:"groups"`
+	Warnings         []string          `json:"warnings,omitempty"`
+	ExternalNodes    []ExternalNode    `json:"external_nodes,omitempty"`
+	ExternalNetworks []ExternalNetwork `json:"external_networks,omitempty"`
+	ExternalLinks    []ExternalLink    `json:"external_links,omitempty"`
 }
 
 // Node represents a processed node for API responses.
@@ -79,6 +82,7 @@ type Node struct {
 	Status        string            `json:"status"`
 	MgmtIPv4     string            `json:"mgmt_ipv4"`
 	MgmtIPv6     string            `json:"mgmt_ipv6"`
+	MgmtNet      string            `json:"mgmt_net,omitempty"`
 	ContainerID   string            `json:"container_id"`
 	Labels        map[string]string `json:"labels"`
 	PortBindings  []PortBinding     `json:"port_bindings"`
@@ -125,4 +129,41 @@ type Groups struct {
 	DCs       []string            `json:"dcs"`
 	Racks     map[string][]string `json:"racks"`
 	RackUnits map[string]int      `json:"rack_units,omitempty"` // rack name → total U count
+}
+
+// ExternalNode represents a non-clab device for visualization.
+type ExternalNode struct {
+	Name        string    `json:"name"`
+	Label       string    `json:"label"`
+	Description string    `json:"description,omitempty"`
+	Icon        string    `json:"icon"`
+	Interfaces  []string  `json:"interfaces,omitempty"`
+	Graph       GraphInfo `json:"graph"`
+	External    bool      `json:"external"` // always true
+}
+
+// ExternalNetwork represents an external network (Internet, WAN, OOB, etc.).
+type ExternalNetwork struct {
+	Name      string `json:"name"`
+	Label     string `json:"label"`
+	Position  string `json:"position"`            // "top" or "bottom"
+	DC        string `json:"dc,omitempty"`
+	Collapsed bool   `json:"collapsed,omitempty"`
+	LinkCount int    `json:"link_count,omitempty"` // for collapsed mgmt display
+}
+
+// ExternalLink represents a connection involving external entities.
+type ExternalLink struct {
+	ID string           `json:"id"`
+	A  ExternalEndpoint `json:"a"`
+	Z  ExternalEndpoint `json:"z"`
+}
+
+// ExternalEndpoint identifies one side of an external link.
+// Exactly one of Node, External, or Network is set.
+type ExternalEndpoint struct {
+	Node      string `json:"node,omitempty"`
+	External  string `json:"external,omitempty"`
+	Network   string `json:"network,omitempty"`
+	Interface string `json:"interface,omitempty"`
 }

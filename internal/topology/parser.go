@@ -143,6 +143,7 @@ func convertNode(name string, rn RawNode) Node {
 		Status:        "running",
 		MgmtIPv4:     rn.MgmtIPv4,
 		MgmtIPv6:     rn.MgmtIPv6,
+		MgmtNet:      rn.MgmtNet,
 		Labels:        labels,
 		PortBindings:  rn.PortBindings,
 		AccessMethods: accessMethods,
@@ -206,6 +207,36 @@ func resolveIcon(kind string, labels map[string]string, bmc bool) string {
 	default:
 		return "host"
 	}
+}
+
+// ExtractClabMgmtNetwork extracts the management network name from the clab config
+// in topology-data.json. Returns empty string if not found.
+func ExtractClabMgmtNetwork(raw *RawTopology) string {
+	if raw.Clab == nil {
+		return ""
+	}
+	config, ok := raw.Clab["config"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	mgmt, ok := config["mgmt"].(map[string]interface{})
+	if !ok {
+		return ""
+	}
+	network, ok := mgmt["network"].(string)
+	if !ok {
+		return ""
+	}
+	return network
+}
+
+// ParseRaw parses topology-data.json bytes into a RawTopology.
+func ParseRaw(data []byte) (*RawTopology, error) {
+	var raw RawTopology
+	if err := json.Unmarshal(data, &raw); err != nil {
+		return nil, fmt.Errorf("parsing topology JSON: %w", err)
+	}
+	return &raw, nil
 }
 
 func inferRole(kind string, labels map[string]string, bmc bool) string {
